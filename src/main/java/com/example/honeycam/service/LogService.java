@@ -2,6 +2,7 @@ package com.example.honeycam.service;
 
 import com.example.honeycam.model.InteractionEvent;
 import com.example.honeycam.model.LoginAttempt;
+import com.example.honeycam.model.RtspRequest;
 import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,6 +79,25 @@ public class LogService {
 
         appendToLog("interactions", event);
         return event;
+    }
+
+    /**
+     * Log an RTSP protocol request to the daily rtsp-requests JSON file.
+     *
+     * @param ipAddress attacker's IP address
+     * @param method    RTSP method (OPTIONS, DESCRIBE, SETUP, PLAY, TEARDOWN, etc.)
+     * @param url       the requested RTSP URL path
+     * @param headers   raw RTSP headers from the request
+     * @return the recorded RtspRequest
+     */
+    public RtspRequest logRtspRequest(String ipAddress, String method, String url, String headers) {
+        RtspRequest request = new RtspRequest(ipAddress, method, url, headers);
+        request.setId(UUID.randomUUID().toString());
+
+        logger.info("[RTSP] IP={}, method={}, url={}", ipAddress, method, url);
+
+        appendToLog("rtsp-requests", request);
+        return request;
     }
 
     /**
