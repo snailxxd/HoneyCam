@@ -2,7 +2,7 @@
 
 ## 1. Project Overview
 
-With the widespread deployment of Internet of Things (IoT) cameras, they have become major targets for cyber attacks, including botnet recruitment and privacy intrusion. Honeypots serve as a proactive defense mechanism by simulating vulnerable systems to attract and analyze attackers.
+With the widespread deployment of Internet of Things (IoT) cameras, they have become major targets for cyberattacks, including botnet recruitment and privacy intrusion. Honeypots serve as a proactive defense mechanism by simulating vulnerable systems to attract and analyze attackers.
 
 However, existing camera honeypots face a trade-off:
 
@@ -28,7 +28,7 @@ Can a **low-cost 360-degree video-based honeypot** achieve deception effectivene
 
 ### Backend
 
-* Java 17
+* Java 23
 * Spring Boot 4.x
 * Spring Web (REST APIs)
 * Spring Security (optional for login simulation logging)
