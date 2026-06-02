@@ -1,0 +1,212 @@
+/* ==========================================
+   HoneyCam — IP Camera Viewer Styles
+   Mimics Hikvision/Dahua web interface look
+   ========================================== */
+
+:root {
+    --bg-primary: #0d0d0d;
+    --bg-header: #1a1a1a;
+    --bg-panel: rgba(20, 20, 20, 0.92);
+    --border-color: #2a2a2a;
+    --text-primary: #e0e0e0;
+    --text-secondary: #999;
+    --accent: #d4213d;
+    --accent-hover: #e8384e;
+    --btn-bg: rgba(255,255,255,0.06);
+    --btn-hover: rgba(255,255,255,0.14);
+    --btn-active: rgba(210,33,61,0.35);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* ---- Header Bar ---- */
+.header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 40px;
+    background: var(--bg-header);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    z-index: 100;
+}
+.header-brand {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.3px;
+}
+.header-model {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-left: 10px;
+}
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+.header-dot {
+    width: 7px; height: 7px;
+    background: #4caf50;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* ---- 360° Viewport ---- */
+.viewport {
+    position: fixed;
+    top: 40px; left: 0; right: 0; bottom: 0;
+    cursor: grab;
+    background: #000;
+}
+.viewport:active { cursor: grabbing; }
+.viewport.zooming { cursor: ns-resize; }
+.viewport.loading::after {
+    content: 'Loading 360° view...';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: #666;
+    font-size: 14px;
+    z-index: 10;
+}
+.viewport canvas { display: block; }
+
+/* ---- OSD Overlay (On-Screen Display) ---- */
+.osd {
+    position: fixed;
+    top: 52px;
+    left: 16px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.75);
+    font-family: 'Consolas', 'Courier New', monospace;
+    z-index: 90;
+    pointer-events: none;
+    text-shadow: 0 0 4px rgba(0,0,0,0.8);
+    line-height: 1.6;
+}
+
+/* ---- PTZ Control Panel ---- */
+.ptz-panel {
+    position: fixed;
+    right: 16px;
+    bottom: 24px;
+    z-index: 90;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    backdrop-filter: blur(10px);
+}
+.ptz-pad {
+    display: grid;
+    grid-template-areas:
+        ".    up    ."
+        "left .     right"
+        ".    down  .";
+    gap: 4px;
+}
+.ptz-btn {
+    width: 36px; height: 36px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--btn-bg);
+    color: var(--text-primary);
+    font-size: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, border-color 0.15s;
+    line-height: 1;
+}
+.ptz-btn:hover { background: var(--btn-hover); border-color: #555; }
+.ptz-btn:active { background: var(--btn-active); border-color: var(--accent); }
+.ptz-up    { grid-area: up; }
+.ptz-left  { grid-area: left; }
+.ptz-right { grid-area: right; }
+.ptz-down  { grid-area: down; }
+
+.ptz-zoom-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.ptz-zoom-btn {
+    width: 28px; height: 28px;
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    background: var(--btn-bg);
+    color: var(--text-primary);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    line-height: 1;
+}
+.ptz-zoom-btn:hover { background: var(--btn-hover); }
+.ptz-zoom-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    width: 32px;
+    text-align: center;
+}
+.ptz-speed {
+    display: flex;
+    gap: 2px;
+}
+.ptz-speed-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #444;
+}
+.ptz-speed-dot.active { background: var(--accent); }
+
+/* ---- Drag hint ---- */
+.drag-hint {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+    z-index: 85;
+    pointer-events: none;
+    transition: opacity 0.8s;
+}
+
+/* ---- Responsive: small screens ---- */
+@media (max-width: 768px) {
+    .ptz-panel { right: 6px; bottom: 12px; padding: 7px; gap: 4px; }
+    .ptz-btn { width: 30px; height: 30px; font-size: 13px; }
+    .osd { font-size: 10px; top: 46px; left: 8px; }
+}

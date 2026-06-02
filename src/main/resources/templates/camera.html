@@ -2,95 +2,78 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${brand} + ' - Live View'">IP Camera - Live View</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: #111;
-            color: #eee;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .camera-container {
-            text-align: center;
-        }
-        .camera-viewport {
-            width: 640px;
-            height: 480px;
-            background: #1a1a2e;
-            border: 2px solid #333;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #555;
-            font-size: 18px;
-        }
-        .controls {
-            margin-top: 16px;
-        }
-        .controls button {
-            padding: 8px 16px;
-            margin: 0 4px;
-            background: #333;
-            color: #eee;
-            border: 1px solid #555;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .controls button:hover {
-            background: #444;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title th:text="${brand} + ' — Live View'">IP Camera — Live View</title>
+    <link rel="stylesheet" th:href="@{/css/camera.css}">
 </head>
 <body>
-    <div class="camera-container">
-        <h2 th:text="${brand} + ' — Live View'">IP Camera — Live View</h2>
-        <p style="color:#888;font-size:13px;margin:8px 0;" th:text="${modelName}">NC-360</p>
-        <div class="camera-viewport" id="cameraView">
-            [360° Camera View — Three.js Placeholder]
+
+    <!-- ======== Header Bar ======== -->
+    <div class="header">
+        <div>
+            <span class="header-brand" th:text="${brand}">IP Camera</span>
+            <span class="header-model" th:text="${modelName}">NC-360</span>
         </div>
-        <div class="controls">
-            <button onclick="handlePan(-10)">◀ Pan Left</button>
-            <button onclick="handleTilt(-10)">▲ Tilt Up</button>
-            <button onclick="handleTilt(10)">▼ Tilt Down</button>
-            <button onclick="handlePan(10)">Pan Right ▶</button>
-            <button onclick="handleZoom(-5)">Zoom In</button>
-            <button onclick="handleZoom(5)">Zoom Out</button>
+        <div class="header-right">
+            <span><span class="header-dot"></span> LIVE</span>
+            <span th:text="${#dates.format(new java.util.Date(), 'yyyy-MM-dd')}">2026-06-02</span>
+            <span id="headerTime">--:--:--</span>
         </div>
     </div>
 
+    <!-- ======== 360° Viewport ======== -->
+    <div class="viewport" id="viewport"></div>
+
+    <!-- ======== On-Screen Display ======== -->
+    <div class="osd">
+        <div>PAN  <span id="osdPan">0.0°</span></div>
+        <div>TILT <span id="osdTilt">0.0°</span></div>
+        <div>ZOOM <span id="osdZoom">75.0°</span></div>
+        <div id="osdTime" style="margin-top:4px;opacity:0.6;">--:--:--</div>
+    </div>
+
+    <!-- ======== Drag Hint ======== -->
+    <div class="drag-hint" id="dragHint">
+        &#x1F5B1; Drag to pan/tilt &bull; Scroll to zoom &bull; Arrow keys to move
+    </div>
+
+    <!-- ======== PTZ Control Panel ======== -->
+    <div class="ptz-panel" id="ptzPanel">
+        <!-- Direction pad -->
+        <div class="ptz-pad">
+            <button class="ptz-btn ptz-up"    id="btnTiltUp"   title="Tilt Up">&#x25B2;</button>
+            <button class="ptz-btn ptz-left"  id="btnPanLeft"  title="Pan Left">&#x25C0;</button>
+            <button class="ptz-btn ptz-right" id="btnPanRight" title="Pan Right">&#x25B6;</button>
+            <button class="ptz-btn ptz-down"  id="btnTiltDown" title="Tilt Down">&#x25BC;</button>
+        </div>
+        <!-- Zoom -->
+        <div class="ptz-zoom-group">
+            <button class="ptz-zoom-btn" id="btnZoomIn"  title="Zoom In">+</button>
+            <span class="ptz-zoom-label">ZOOM</span>
+            <button class="ptz-zoom-btn" id="btnZoomOut" title="Zoom Out">&minus;</button>
+        </div>
+        <!-- Speed indicator -->
+        <div class="ptz-speed" id="btnSpeed" title="Click to cycle speed" style="cursor:pointer;">
+            <span class="ptz-speed-dot active"></span>
+            <span class="ptz-speed-dot"></span>
+            <span class="ptz-speed-dot"></span>
+        </div>
+    </div>
+
+    <!-- ======== Three.js CDN ======== -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js">
+    </script>
+
+    <!-- ======== HoneyCam Viewer ======== -->
+    <script th:src="@{/js/camera-viewer.js}"></script>
+
+    <!-- ======== Header clock ======== -->
     <script>
-        // Placeholder PTZ handlers — will be replaced with Three.js implementation
-        function handlePan(delta) {
-            fetch('/api/interaction', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ actionType: 'PAN', deltaX: delta, deltaY: 0 })
-            });
-            console.log('Pan:', delta);
-        }
-        function handleTilt(delta) {
-            fetch('/api/interaction', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ actionType: 'TILT', deltaX: 0, deltaY: delta })
-            });
-            console.log('Tilt:', delta);
-        }
-        function handleZoom(delta) {
-            fetch('/api/interaction', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ actionType: 'ZOOM', deltaX: 0, deltaY: 0, zoomLevel: delta })
-            });
-            console.log('Zoom:', delta);
-        }
+        (function tick() {
+            document.getElementById('headerTime').textContent =
+                new Date().toTimeString().slice(0, 8);
+            setTimeout(tick, 1000);
+        })();
     </script>
 </body>
 </html>
