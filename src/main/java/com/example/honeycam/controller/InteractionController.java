@@ -23,9 +23,13 @@ public class InteractionController {
 
     private final LogService logService;
     private final Map<String, InteractionSession> sessions = new ConcurrentHashMap<>();
+    private final boolean ptzEnabled;
 
-    public InteractionController(LogService logService) {
+    public InteractionController(
+            LogService logService,
+            @Value("${honeycam.interaction.ptz-enabled:true}") boolean ptzEnabled) {
         this.logService = logService;
+        this.ptzEnabled = ptzEnabled;
     }
 
     /**
@@ -34,11 +38,20 @@ public class InteractionController {
     @PostMapping("/interaction")
     public ResponseEntity<Map<String, Object>> recordInteraction(
             @RequestBody InteractionEvent event,
-            HttpServletRequest request) {
+            HttpServletRequest request,
+            HttpSession session) {
 
         // Fill in server-side information
         event.setIpAddress(getClientIp(request));
         event.setTimestamp(Instant.now());
+        event.setSessionId(session.getId());
+
+        if (!ptzEnabled && isPtzAction(event.getActionType())) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "status", "blocked",
+                    "message", "ptz disabled for low-interaction mode"
+            ));
+        }
 
         logService.logInteraction(event);
 
@@ -56,6 +69,7 @@ public class InteractionController {
         InteractionSession camSession = sessions.get(session.getId());
         if (camSession == null) {
             camSession = new InteractionSession();
+            camSession.startedAt = Instant.now();
             sessions.put(session.getId(), camSession);
         }
 
@@ -63,7 +77,8 @@ public class InteractionController {
                 "pan", camSession.pan,
                 "tilt", camSession.tilt,
                 "fov", camSession.fov,
-                "sessionId", session.getId()
+                "sessionId", session.getId(),
+                "ptzEnabled", ptzEnabled
         ));
     }
 
@@ -81,6 +96,13 @@ public class InteractionController {
         if (state.containsKey("pan")) camSession.pan = state.get("pan");
         if (state.containsKey("tilt")) camSession.tilt = state.get("tilt");
         if (state.containsKey("fov")) camSession.fov = state.get("fov");
+
+        if (!ptzEnabled) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "status", "blocked",
+                    "message", "ptz disabled for low-interaction mode"
+            ));
+        }
 
         // Also log as interaction
         InteractionEvent event = new InteractionEvent();
@@ -112,6 +134,50 @@ public class InteractionController {
         ));
     }
 
+    @PostMapping("/session/start")
+    public ResponseEntity<Map<String, Object>> startSession(HttpServletRequest request, HttpSession session) {
+        InteractionSession camSession = sessions.computeIfAbsent(session.getId(), k -> new InteractionSession());
+        camSession.startedAt = Instant.now();
+
+        InteractionEvent event = new InteractionEvent();
+        event.setActionType(InteractionEvent.ActionType.SESSION_START);
+        event.setTimestamp(camSession.startedAt);
+        event.setIpAddress(getClientIp(request));
+        event.setSessionId(session.getId());
+        logService.logInteraction(event);
+
+        return ResponseEntity.ok(Map.of(
+                "status", "ok",
+                "sessionId", session.getId(),
+                "ptzEnabled", ptzEnabled
+        ));
+    }
+
+    @PostMapping("/session/end")
+    public ResponseEntity<Map<String, Object>> endSession(HttpServletRequest request, HttpSession session) {
+        InteractionSession camSession = sessions.computeIfAbsent(session.getId(), k -> new InteractionSession());
+        Instant endedAt = Instant.now();
+        Instant startedAt = camSession.startedAt != null ? camSession.startedAt : endedAt;
+        long dwellSeconds = Math.max(0, endedAt.getEpochSecond() - startedAt.getEpochSecond());
+
+        InteractionEvent event = new InteractionEvent();
+        event.setActionType(InteractionEvent.ActionType.SESSION_END);
+        event.setTimestamp(endedAt);
+        event.setIpAddress(getClientIp(request));
+        event.setSessionId(session.getId());
+        event.setDeltaX(dwellSeconds);
+        event.setFov(camSession.fov);
+        event.setPanAngle(camSession.pan);
+        event.setTiltAngle(camSession.tilt);
+        logService.logInteraction(event);
+
+        return ResponseEntity.ok(Map.of(
+                "status", "ok",
+                "sessionId", session.getId(),
+                "dwellSeconds", dwellSeconds
+        ));
+    }
+
     private String getClientIp(HttpServletRequest request) {
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isBlank()) {
@@ -131,6 +197,16 @@ public class InteractionController {
         return InteractionEvent.ActionType.DRAG;
     }
 
+    private boolean isPtzAction(InteractionEvent.ActionType actionType) {
+        if (actionType == null) {
+            return false;
+        }
+        return actionType == InteractionEvent.ActionType.PAN
+                || actionType == InteractionEvent.ActionType.TILT
+                || actionType == InteractionEvent.ActionType.ZOOM
+                || actionType == InteractionEvent.ActionType.DRAG;
+    }
+
     /**
      * Internal class to track per-session camera state.
      */
@@ -138,5 +214,6 @@ public class InteractionController {
         double pan = 0.0;
         double tilt = 0.0;
         double fov = 75.0; // default FOV
+        Instant startedAt;
     }
 }

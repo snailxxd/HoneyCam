@@ -13,7 +13,10 @@ public class InteractionEvent {
         ZOOM,
         CLICK,
         DRAG,
-        LOGIN_PAGE_LOAD
+        LOGIN_PAGE_LOAD,
+        SESSION_START,
+        SESSION_END,
+        LOGIN_ATTEMPT
     }
 
     private String id;

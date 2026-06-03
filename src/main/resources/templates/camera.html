@@ -6,7 +6,16 @@
     <title th:text="${brand} + ' — Live View'">IP Camera — Live View</title>
     <link rel="stylesheet" th:href="@{/css/camera.css}">
 </head>
-<body>
+<body th:attr="data-ptz-enabled=${ptzEnabled},
+               data-panorama-mode=${panoramaMode},
+               data-panorama-video-url=${panoramaVideoUrl},
+               data-panorama-image-url=${panoramaImageUrl},
+               data-preview-latency-min-ms=${previewLatencyMinMs},
+               data-preview-latency-max-ms=${previewLatencyMaxMs},
+               data-auto-patrol-enabled=${autoPatrolEnabled},
+               data-auto-patrol-pan-degrees=${autoPatrolPanDegrees},
+               data-auto-patrol-tilt-degrees=${autoPatrolTiltDegrees},
+               data-auto-patrol-cycle-seconds=${autoPatrolCycleSeconds}">
 
     <!-- ======== Header Bar ======== -->
     <div class="header">
@@ -23,6 +32,13 @@
 
     <!-- ======== 360° Viewport ======== -->
     <div class="viewport" id="viewport"></div>
+    <div class="preview-overlay" id="previewOverlay">
+        <div class="preview-card">
+            <div class="preview-title">Connecting to Camera...</div>
+            <div class="preview-subtitle">Negotiating stream channel and decoding panorama feed</div>
+            <div class="preview-progress"><span id="previewProgressBar"></span></div>
+        </div>
+    </div>
 
     <!-- ======== On-Screen Display ======== -->
     <div class="osd">
@@ -35,6 +51,9 @@
     <!-- ======== Drag Hint ======== -->
     <div class="drag-hint" id="dragHint">
         &#x1F5B1; Drag to pan/tilt &bull; Scroll to zoom &bull; Arrow keys to move
+    </div>
+    <div class="drag-hint" id="modeHint" th:if="${!ptzEnabled}" style="bottom: 58px; opacity: 0.95;">
+        Group B low-interaction mode: PTZ input disabled, auto patrol enabled.
     </div>
 
     <!-- ======== PTZ Control Panel ======== -->

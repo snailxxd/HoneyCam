@@ -7,87 +7,104 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: #1a1a2e;
+            font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+            background: #f2f5f8;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            color: #eee;
+            color: #1f2a36;
         }
         .login-container {
-            background: #16213e;
-            border: 1px solid #0f3460;
-            border-radius: 8px;
-            padding: 40px;
-            width: 360px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            background: #ffffff;
+            border: 1px solid #d7e1ea;
+            border-radius: 6px;
+            padding: 34px 30px;
+            width: 380px;
+            box-shadow: 0 8px 28px rgba(18, 46, 78, 0.12);
         }
         .login-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 22px;
         }
         .login-header h1 {
-            font-size: 22px;
-            color: #e94560;
-            margin-bottom: 6px;
+            font-size: 24px;
+            color: #14508f;
+            letter-spacing: 0.3px;
+            margin-bottom: 8px;
         }
         .login-header p {
             font-size: 13px;
-            color: #888;
+            color: #6d7c8c;
+        }
+        .login-subtitle {
+            text-align: center;
+            font-size: 12px;
+            color: #7f8fa0;
+            margin-bottom: 18px;
         }
         .form-group {
-            margin-bottom: 18px;
+            margin-bottom: 16px;
         }
         .form-group label {
             display: block;
-            font-size: 13px;
+            font-size: 12px;
             margin-bottom: 6px;
-            color: #aaa;
+            color: #5f6f80;
         }
         .form-group input {
             width: 100%;
             padding: 10px 12px;
-            border: 1px solid #0f3460;
+            border: 1px solid #c8d5e1;
             border-radius: 4px;
-            background: #1a1a2e;
-            color: #eee;
+            background: #fff;
+            color: #243140;
             font-size: 14px;
             outline: none;
             transition: border-color 0.2s;
         }
         .form-group input:focus {
-            border-color: #e94560;
+            border-color: #2a78c5;
         }
         .btn-login {
             width: 100%;
             padding: 12px;
-            background: #e94560;
+            background: linear-gradient(180deg, #2f7ec8, #1f66ab);
             color: white;
             border: none;
             border-radius: 4px;
             font-size: 15px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: filter 0.2s;
         }
         .btn-login:hover {
-            background: #c73650;
+            filter: brightness(1.05);
         }
         .error-message {
-            background: rgba(233, 69, 96, 0.15);
-            border: 1px solid #e94560;
-            color: #e94560;
+            background: #fff4f4;
+            border: 1px solid #ffc9c9;
+            color: #b43d3d;
             padding: 10px;
             border-radius: 4px;
-            margin-bottom: 18px;
+            margin-bottom: 14px;
+            font-size: 13px;
+            text-align: center;
+        }
+        .notice-message {
+            background: #eef8ff;
+            border: 1px solid #b9dff7;
+            color: #2d6f99;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 14px;
             font-size: 13px;
             text-align: center;
         }
         .footer {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 18px;
             font-size: 11px;
-            color: #555;
+            color: #8d9baa;
         }
     </style>
 </head>
@@ -97,9 +114,13 @@
             <h1 th:text="${brand}">IP Camera</h1>
             <p th:text="${modelName}">NC-360</p>
         </div>
+        <div class="login-subtitle">Network Camera Web Client</div>
 
         <div th:if="${error}" class="error-message" th:text="${error}">
             Invalid username or password.
+        </div>
+        <div th:if="${notice}" class="notice-message" th:text="${notice}">
+            Login accepted. Redirecting to live view...
         </div>
 
         <form th:action="@{/login}" method="post">
@@ -115,7 +136,7 @@
         </form>
 
         <div class="footer">
-            &copy; 2024 IP Camera. All rights reserved.
+            &copy; 2026 Network Camera Firmware v5.8.1
         </div>
     </div>
 </body>

@@ -95,6 +95,52 @@ body {
 }
 .viewport canvas { display: block; }
 
+/* ---- Preview overlay (deception startup) ---- */
+.preview-overlay {
+    position: fixed;
+    inset: 40px 0 0 0;
+    background: radial-gradient(circle at center, rgba(10,10,10,0.65), rgba(0,0,0,0.9));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 110;
+    transition: opacity 0.35s ease;
+}
+.preview-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+.preview-card {
+    width: min(520px, calc(100vw - 40px));
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(12, 14, 18, 0.9);
+    border-radius: 8px;
+    padding: 18px;
+}
+.preview-title {
+    color: #e5ecf3;
+    font-size: 15px;
+    font-weight: 600;
+}
+.preview-subtitle {
+    margin-top: 8px;
+    color: #9aadb8;
+    font-size: 12px;
+}
+.preview-progress {
+    margin-top: 14px;
+    height: 8px;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.12);
+    overflow: hidden;
+}
+.preview-progress > span {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #2a75bd, #4aa8e8);
+}
+
 /* ---- OSD Overlay (On-Screen Display) ---- */
 .osd {
     position: fixed;
