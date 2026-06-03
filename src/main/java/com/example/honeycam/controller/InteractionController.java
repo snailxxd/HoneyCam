@@ -1,10 +1,10 @@
 package com.example.honeycam.controller;
 
+import com.example.honeycam.config.HoneyCamProperties;
 import com.example.honeycam.model.InteractionEvent;
 import com.example.honeycam.service.LogService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,13 +23,15 @@ public class InteractionController {
 
     private final LogService logService;
     private final Map<String, InteractionSession> sessions = new ConcurrentHashMap<>();
-    private final boolean ptzEnabled;
+    private final HoneyCamProperties props;
 
-    public InteractionController(
-            LogService logService,
-            @Value("${honeycam.interaction.ptz-enabled:true}") boolean ptzEnabled) {
+    public InteractionController(LogService logService, HoneyCamProperties props) {
         this.logService = logService;
-        this.ptzEnabled = ptzEnabled;
+        this.props = props;
+    }
+
+    private boolean ptzEnabled() {
+        return props.getInteraction().isPtzEnabled();
     }
 
     /**
@@ -46,7 +48,7 @@ public class InteractionController {
         event.setTimestamp(Instant.now());
         event.setSessionId(session.getId());
 
-        if (!ptzEnabled && isPtzAction(event.getActionType())) {
+        if (!ptzEnabled() && isPtzAction(event.getActionType())) {
             return ResponseEntity.status(403).body(Map.of(
                     "status", "blocked",
                     "message", "ptz disabled for low-interaction mode"
@@ -78,7 +80,7 @@ public class InteractionController {
                 "tilt", camSession.tilt,
                 "fov", camSession.fov,
                 "sessionId", session.getId(),
-                "ptzEnabled", ptzEnabled
+                "ptzEnabled", ptzEnabled()
         ));
     }
 
@@ -97,7 +99,7 @@ public class InteractionController {
         if (state.containsKey("tilt")) camSession.tilt = state.get("tilt");
         if (state.containsKey("fov")) camSession.fov = state.get("fov");
 
-        if (!ptzEnabled) {
+        if (!ptzEnabled()) {
             return ResponseEntity.status(403).body(Map.of(
                     "status", "blocked",
                     "message", "ptz disabled for low-interaction mode"
@@ -149,7 +151,7 @@ public class InteractionController {
         return ResponseEntity.ok(Map.of(
                 "status", "ok",
                 "sessionId", session.getId(),
-                "ptzEnabled", ptzEnabled
+                "ptzEnabled", ptzEnabled()
         ));
     }
 

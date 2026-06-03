@@ -38,3 +38,10 @@ out/
 
 ### HoneyCam ###
 logs/
+pcap/
+analysis-output/
+
+### Python ###
+__pycache__/
+*.pyc
+*.pyo

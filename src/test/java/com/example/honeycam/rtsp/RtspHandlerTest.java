@@ -30,7 +30,10 @@ class RtspHandlerTest {
     @BeforeEach
     void setUp() throws Exception {
         // Create LogService with temp directory
-        logService = new LogService("build/test-logs");
+        com.example.honeycam.config.HoneyCamProperties props =
+                new com.example.honeycam.config.HoneyCamProperties();
+        props.getLog().setDir("build/test-logs");
+        logService = new LogService(props);
 
         // Start a test server on a random port
         serverSocket = new ServerSocket(0);

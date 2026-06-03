@@ -1,9 +1,9 @@
 package com.example.honeycam.rtsp;
 
+import com.example.honeycam.config.HoneyCamProperties;
 import com.example.honeycam.service.LogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -39,10 +39,9 @@ public class RtspServer {
     private ServerSocket serverSocket;
     private ExecutorService threadPool;
 
-    public RtspServer(LogService logService,
-                      @Value("${honeycam.rtsp.port:554}") int port) {
+    public RtspServer(LogService logService, HoneyCamProperties props) {
         this.logService = logService;
-        this.port = port;
+        this.port = props.getRtsp().getPort();
     }
 
     /**

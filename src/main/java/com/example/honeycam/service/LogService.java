@@ -1,12 +1,12 @@
 package com.example.honeycam.service;
 
+import com.example.honeycam.config.HoneyCamProperties;
 import com.example.honeycam.model.InteractionEvent;
 import com.example.honeycam.model.LoginAttempt;
 import com.example.honeycam.model.RtspRequest;
 import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedWriter;
@@ -30,15 +30,15 @@ public class LogService {
     private final ObjectMapper objectMapper;
     private final Path logDir;
 
-    public LogService(@Value("${honeycam.log.dir:logs}") String logDirPath) {
+    public LogService(HoneyCamProperties props) {
         this.objectMapper = new ObjectMapper();
         // Jackson 3.x has Java time support built-in — no need for separate module
-        this.logDir = Paths.get(logDirPath);
+        this.logDir = Paths.get(props.getLog().getDir());
         try {
             Files.createDirectories(this.logDir);
             logger.info("Log directory initialized: {}", this.logDir.toAbsolutePath());
         } catch (IOException e) {
-            logger.error("Failed to create log directory: {}", logDirPath, e);
+            logger.error("Failed to create log directory: {}", logDir, e);
         }
     }
 
