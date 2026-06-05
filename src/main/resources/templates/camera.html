@@ -15,68 +15,152 @@
                data-auto-patrol-enabled=${autoPatrolEnabled},
                data-auto-patrol-pan-degrees=${autoPatrolPanDegrees},
                data-auto-patrol-tilt-degrees=${autoPatrolTiltDegrees},
-               data-auto-patrol-cycle-seconds=${autoPatrolCycleSeconds}">
+               data-auto-patrol-cycle-seconds=${autoPatrolCycleSeconds},
+               data-camera-epoch-start=${cameraEpochStart}">
 
-    <!-- ======== Header Bar ======== -->
+    <!-- ======== Header (dark, Hikvision style) ======== -->
     <div class="header">
-        <div>
-            <span class="header-brand" th:text="${brand}">IP Camera</span>
-            <span class="header-model" th:text="${modelName}">NC-360</span>
-        </div>
-        <div class="header-right">
-            <span><span class="header-dot"></span> LIVE</span>
-            <span th:text="${#dates.format(new java.util.Date(), 'yyyy-MM-dd')}">2026-06-02</span>
-            <span id="headerTime">--:--:--</span>
-        </div>
-    </div>
-
-    <!-- ======== 360° Viewport ======== -->
-    <div class="viewport" id="viewport"></div>
-    <div class="preview-overlay" id="previewOverlay">
-        <div class="preview-card">
-            <div class="preview-title">Connecting to Camera...</div>
-            <div class="preview-subtitle">Negotiating stream channel and decoding panorama feed</div>
-            <div class="preview-progress"><span id="previewProgressBar"></span></div>
+        <div class="logo"></div>
+        <ul class="nav">
+            <li class="active"><a>Live View</a></li>
+            <li><a>Configuration</a></li>
+        </ul>
+        <div class="header-r">
+            <span class="user"><i class="icon"></i>admin</span>
+            <span class="split">|</span>
+            <span class="help"><i class="icon"></i>Help</span>
+            <span class="split">|</span>
+            <span class="exit" id="btnLogout"><i class="icon"></i>Logout</span>
         </div>
     </div>
 
-    <!-- ======== On-Screen Display ======== -->
-    <div class="osd">
-        <div>PAN  <span id="osdPan">0.0°</span></div>
-        <div>TILT <span id="osdTilt">0.0°</span></div>
-        <div>ZOOM <span id="osdZoom">75.0°</span></div>
-        <div id="osdTime" style="margin-top:4px;opacity:0.6;">--:--:--</div>
+    <!-- ======== Main Content ======== -->
+    <div class="main-wrap">
+
+        <!-- ======== Content area ======== -->
+        <div class="content-area">
+            <!-- Left: Video Viewport -->
+            <div class="preview">
+                <div class="layout-center-inner">
+                    <div class="plugin" id="viewport">
+                        <!-- OSD date/time — pixel canvas rendered into camera feed (hidden until stream loads) -->
+                        <canvas class="osd-date-overlay hidden" id="hikOsd"></canvas>
+                        <div class="preview-overlay" id="previewOverlay">
+                            <span class="preview-spinner"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Toolbar below video, same width -->
+                <div class="tool">
+                    <div class="tool-l">
+                        <button class="btn" title="Live View" disabled><i class="icon-wnd-1"></i></button>
+                        <button class="btn" title="Capture"><i class="icon-capture"></i></button>
+                        <button class="btn" title="Record"><i class="icon-record"></i></button>
+                        <button class="btn" title="Digital Zoom"><i class="icon-ezoom"></i></button>
+                        <button class="btn" title="Sound"><i class="icon-sound"></i></button>
+                    </div>
+                    <div class="tool-r">
+                        <button class="btn" id="btnFullScreen" title="Full Screen"><i class="icon-full"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: PTZ Panel -->
+            <div class="layout-east">
+                <div class="ptz" id="ptzPanel">
+                    <div class="ptz-name"><i class="ptz-title-icon"></i>PTZ Control</div>
+
+                    <!-- Direction pad + Zoom/Focus/Iris (exact Hikvision structure) -->
+                    <div class="ptz-ctrl">
+                        <!-- Direction buttons (left side) -->
+                        <div class="ptz-ctrl-l">
+                            <div class="direction" id="btnPanLeftUp"   title="Left Up"><i class="icon-ptz-left-up"></i></div>
+                            <div class="direction" id="btnTiltUp"      title="Up"><i class="icon-ptz-up"></i></div>
+                            <div class="direction" id="btnPanRightUp"  title="Right Up"><i class="icon-ptz-right-up"></i></div>
+                            <div class="direction" id="btnPanLeft"     title="Left"><i class="icon-ptz-left"></i></div>
+                            <div class="direction" id="btnReset"       title="Reset"><i class="icon-ptz-auto"></i></div>
+                            <div class="direction" id="btnPanRight"    title="Right"><i class="icon-ptz-right"></i></div>
+                            <div class="direction" id="btnPanLeftDown" title="Left Down"><i class="icon-ptz-left-down"></i></div>
+                            <div class="direction" id="btnTiltDown"    title="Down"><i class="icon-ptz-down"></i></div>
+                            <div class="direction" id="btnPanRightDown" title="Right Down"><i class="icon-ptz-right-down"></i></div>
+                        </div>
+                        <!-- Zoom / Focus / Iris (right side) -->
+                        <div class="ptz-ctrl-r">
+                            <div class="operation">
+                                <i class="icon-ptz-zoomout" id="btnZoomOut" title="Zoom Out"></i>
+                                <i class="icon-ptz-zoomin"  id="btnZoomIn"  title="Zoom In"></i>
+                            </div>
+                            <div class="operation">
+                                <i class="icon-ptz-focusout" title="Focus Out"></i>
+                                <i class="icon-ptz-focusin"  title="Focus In"></i>
+                            </div>
+                            <div class="operation">
+                                <i class="icon-ptz-irisout" title="Iris Out"></i>
+                                <i class="icon-ptz-irisin"  title="Iris In"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Speed -->
+                    <div class="ptz-speed-row">
+                        <span class="ptz-speed-label">Speed</span>
+                        <span class="ptz-speed-dots" id="btnSpeed" title="Click to cycle speed">
+                            <i class="speed-dot active"></i>
+                            <i class="speed-dot"></i>
+                            <i class="speed-dot"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Preset list (non-functional, mimicking Hikvision) -->
+                <div class="ptz-preset-list">
+                    <div class="ptz-preset-header"><i class="preset-flag-icon"></i>Preset</div>
+                    <div class="ptz-preset-scroll">
+                        <div class="line line-select"><span class="preset-index">1</span><span class="preset-name">Preset 1</span></div>
+                        <div class="line"><span class="preset-index">2</span><span class="preset-name">Preset 2</span></div>
+                        <div class="line"><span class="preset-index">3</span><span class="preset-name">Preset 3</span></div>
+                        <div class="line"><span class="preset-index">4</span><span class="preset-name">Preset 4</span></div>
+                        <div class="line"><span class="preset-index">5</span><span class="preset-name">Preset 5</span></div>
+                        <div class="line"><span class="preset-index">6</span><span class="preset-name">Preset 6</span></div>
+                        <div class="line"><span class="preset-index">7</span><span class="preset-name">Preset 7</span></div>
+                        <div class="line"><span class="preset-index">8</span><span class="preset-name">Preset 8</span></div>
+                        <div class="line"><span class="preset-index">9</span><span class="preset-name">Preset 9</span></div>
+                        <div class="line"><span class="preset-index">10</span><span class="preset-name">Preset 10</span></div>
+                        <div class="line"><span class="preset-index">11</span><span class="preset-name">Preset 11</span></div>
+                        <div class="line"><span class="preset-index">12</span><span class="preset-name">Preset 12</span></div>
+                        <div class="line"><span class="preset-index">13</span><span class="preset-name">Preset 13</span></div>
+                        <div class="line"><span class="preset-index">14</span><span class="preset-name">Preset 14</span></div>
+                        <div class="line"><span class="preset-index">15</span><span class="preset-name">Preset 15</span></div>
+                        <div class="line"><span class="preset-index">16</span><span class="preset-name">Preset 16</span></div>
+                        <div class="line"><span class="preset-index">17</span><span class="preset-name">Preset 17</span></div>
+                        <div class="line"><span class="preset-index">18</span><span class="preset-name">Preset 18</span></div>
+                        <div class="line"><span class="preset-index">19</span><span class="preset-name">Preset 19</span></div>
+                        <div class="line"><span class="preset-index">20</span><span class="preset-name">Preset 20</span></div>
+                        <div class="line"><span class="preset-index">21</span><span class="preset-name">Preset 21</span></div>
+                        <div class="line"><span class="preset-index">22</span><span class="preset-name">Preset 22</span></div>
+                        <div class="line"><span class="preset-index">23</span><span class="preset-name">Preset 23</span></div>
+                        <div class="line"><span class="preset-index">24</span><span class="preset-name">Preset 24</span></div>
+                        <div class="line"><span class="preset-index">25</span><span class="preset-name">Preset 25</span></div>
+                        <div class="line"><span class="preset-index">26</span><span class="preset-name">Preset 26</span></div>
+                        <div class="line"><span class="preset-index">27</span><span class="preset-name">Preset 27</span></div>
+                        <div class="line"><span class="preset-index">28</span><span class="preset-name">Preset 28</span></div>
+                        <div class="line"><span class="preset-index">29</span><span class="preset-name">Preset 29</span></div>
+                        <div class="line"><span class="preset-index">30</span><span class="preset-name">Preset 30</span></div>
+                        <div class="line"><span class="preset-index">31</span><span class="preset-name">Preset 31</span></div>
+                        <div class="line"><span class="preset-index">32</span><span class="preset-name">Preset 32</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- ======== Drag Hint ======== -->
-    <div class="drag-hint" id="dragHint">
-        &#x1F5B1; Drag to pan/tilt &bull; Scroll to zoom &bull; Arrow keys to move
-    </div>
-    <div class="drag-hint" id="modeHint" th:if="${!ptzEnabled}" style="bottom: 58px; opacity: 0.95;">
-        Group B low-interaction mode: PTZ input disabled, auto patrol enabled.
-    </div>
+    <!-- ======== Group B badge ======== -->
+    <div class="mode-badge" id="modeBadge" th:if="${!ptzEnabled}">Auto Patrol</div>
 
-    <!-- ======== PTZ Control Panel ======== -->
-    <div class="ptz-panel" id="ptzPanel">
-        <!-- Direction pad -->
-        <div class="ptz-pad">
-            <button class="ptz-btn ptz-up"    id="btnTiltUp"   title="Tilt Up">&#x25B2;</button>
-            <button class="ptz-btn ptz-left"  id="btnPanLeft"  title="Pan Left">&#x25C0;</button>
-            <button class="ptz-btn ptz-right" id="btnPanRight" title="Pan Right">&#x25B6;</button>
-            <button class="ptz-btn ptz-down"  id="btnTiltDown" title="Tilt Down">&#x25BC;</button>
-        </div>
-        <!-- Zoom -->
-        <div class="ptz-zoom-group">
-            <button class="ptz-zoom-btn" id="btnZoomIn"  title="Zoom In">+</button>
-            <span class="ptz-zoom-label">ZOOM</span>
-            <button class="ptz-zoom-btn" id="btnZoomOut" title="Zoom Out">&minus;</button>
-        </div>
-        <!-- Speed indicator -->
-        <div class="ptz-speed" id="btnSpeed" title="Click to cycle speed" style="cursor:pointer;">
-            <span class="ptz-speed-dot active"></span>
-            <span class="ptz-speed-dot"></span>
-            <span class="ptz-speed-dot"></span>
-        </div>
+    <!-- ======== Footer ======== -->
+    <div class="footer">
+        &copy; 2022 Hikvision Digital Technology Co., Ltd. All Rights Reserved.
     </div>
 
     <!-- ======== Three.js CDN ======== -->
@@ -85,14 +169,5 @@
 
     <!-- ======== HoneyCam Viewer ======== -->
     <script th:src="@{/js/camera-viewer.js}"></script>
-
-    <!-- ======== Header clock ======== -->
-    <script>
-        (function tick() {
-            document.getElementById('headerTime').textContent =
-                new Date().toTimeString().slice(0, 8);
-            setTimeout(tick, 1000);
-        })();
-    </script>
 </body>
 </html>

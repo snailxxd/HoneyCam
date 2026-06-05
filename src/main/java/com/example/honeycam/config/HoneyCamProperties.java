@@ -39,11 +39,17 @@ public class HoneyCamProperties {
     public static class Camera {
         private String brand = "Hikvision";
         private String model = "DS-2CD2043G2-I";
+        /** Unix epoch seconds when the camera "went online".
+         *  The frontend OSD clock starts from this fixed timestamp
+         *  so the date never resets across attacker page refreshes. */
+        private long epochStart = 0L;
 
         public String getBrand() { return brand; }
         public void setBrand(String brand) { this.brand = brand; }
         public String getModel() { return model; }
         public void setModel(String model) { this.model = model; }
+        public long getEpochStart() { return epochStart; }
+        public void setEpochStart(long epochStart) { this.epochStart = epochStart; }
     }
 
     public static class Auth {

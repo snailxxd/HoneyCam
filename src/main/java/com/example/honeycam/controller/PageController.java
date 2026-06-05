@@ -41,6 +41,7 @@ public class PageController {
         model.addAttribute("autoPatrolPanDegrees", inter.getAutoPatrolPanDegrees());
         model.addAttribute("autoPatrolTiltDegrees",inter.getAutoPatrolTiltDegrees());
         model.addAttribute("autoPatrolCycleSeconds",inter.getAutoPatrolCycleSeconds());
+        model.addAttribute("cameraEpochStart",      cam.getEpochStart());
 
         return "camera";
     }

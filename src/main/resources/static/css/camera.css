@@ -1,258 +1,496 @@
 /* ==========================================
-   HoneyCam — IP Camera Viewer Styles
-   Mimics Hikvision/Dahua web interface look
+   HoneyCam — Hikvision-style Camera Viewer
+   Uses real Hikvision sprite images
    ========================================== */
 
-:root {
-    --bg-primary: #0d0d0d;
-    --bg-header: #1a1a1a;
-    --bg-panel: rgba(20, 20, 20, 0.92);
-    --border-color: #2a2a2a;
-    --text-primary: #e0e0e0;
-    --text-secondary: #999;
-    --accent: #d4213d;
-    --accent-hover: #e8384e;
-    --btn-bg: rgba(255,255,255,0.06);
-    --btn-hover: rgba(255,255,255,0.14);
-    --btn-active: rgba(210,33,61,0.35);
+/* ── Reset / Base ─────────────────────────────── */
+* {
+    margin: 0;
+    padding: 0;
+    -webkit-text-size-adjust: none;
 }
-
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
-body {
-    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    overflow: hidden;
-    height: 100vh;
-    width: 100vw;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
-/* ---- Header Bar ---- */
-.header {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: 40px;
-    background: var(--bg-header);
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    z-index: 100;
-}
-.header-brand {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
-    letter-spacing: 0.3px;
-}
-.header-model {
-    font-size: 11px;
-    color: var(--text-secondary);
-    margin-left: 10px;
-}
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    font-size: 11px;
-    color: var(--text-secondary);
-}
-.header-dot {
-    width: 7px; height: 7px;
-    background: #4caf50;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 4px;
-    animation: pulse 2s infinite;
-}
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-}
-
-/* ---- 360° Viewport ---- */
-.viewport {
-    position: fixed;
-    top: 40px; left: 0; right: 0; bottom: 0;
-    cursor: grab;
-    background: #000;
-}
-.viewport:active { cursor: grabbing; }
-.viewport.zooming { cursor: ns-resize; }
-.viewport.loading::after {
-    content: 'Loading 360° view...';
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    color: #666;
-    font-size: 14px;
-    z-index: 10;
-}
-.viewport canvas { display: block; }
-
-/* ---- Preview overlay (deception startup) ---- */
-.preview-overlay {
-    position: fixed;
-    inset: 40px 0 0 0;
-    background: radial-gradient(circle at center, rgba(10,10,10,0.65), rgba(0,0,0,0.9));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 110;
-    transition: opacity 0.35s ease;
-}
-.preview-overlay.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-.preview-card {
-    width: min(520px, calc(100vw - 40px));
-    border: 1px solid rgba(255,255,255,0.14);
-    background: rgba(12, 14, 18, 0.9);
-    border-radius: 8px;
-    padding: 18px;
-}
-.preview-title {
-    color: #e5ecf3;
-    font-size: 15px;
-    font-weight: 600;
-}
-.preview-subtitle {
-    margin-top: 8px;
-    color: #9aadb8;
-    font-size: 12px;
-}
-.preview-progress {
-    margin-top: 14px;
-    height: 8px;
-    border-radius: 99px;
-    background: rgba(255,255,255,0.12);
-    overflow: hidden;
-}
-.preview-progress > span {
-    display: block;
+html, body {
     height: 100%;
-    width: 0;
-    background: linear-gradient(90deg, #2a75bd, #4aa8e8);
-}
-
-/* ---- OSD Overlay (On-Screen Display) ---- */
-.osd {
-    position: fixed;
-    top: 52px;
-    left: 16px;
+    font-family: Arial, Helvetica, sans-serif;
     font-size: 12px;
-    color: rgba(255,255,255,0.75);
-    font-family: 'Consolas', 'Courier New', monospace;
-    z-index: 90;
-    pointer-events: none;
-    text-shadow: 0 0 4px rgba(0,0,0,0.8);
-    line-height: 1.6;
-}
-
-/* ---- PTZ Control Panel ---- */
-.ptz-panel {
-    position: fixed;
-    right: 16px;
-    bottom: 24px;
-    z-index: 90;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    padding: 10px;
+    background-color: #FFFFFF;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    backdrop-filter: blur(10px);
 }
-.ptz-pad {
-    display: grid;
-    grid-template-areas:
-        ".    up    ."
-        "left .     right"
-        ".    down  .";
-    gap: 4px;
-}
-.ptz-btn {
-    width: 36px; height: 36px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    background: var(--btn-bg);
-    color: var(--text-primary);
-    font-size: 15px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.15s, border-color 0.15s;
-    line-height: 1;
-}
-.ptz-btn:hover { background: var(--btn-hover); border-color: #555; }
-.ptz-btn:active { background: var(--btn-active); border-color: var(--accent); }
-.ptz-up    { grid-area: up; }
-.ptz-left  { grid-area: left; }
-.ptz-right { grid-area: right; }
-.ptz-down  { grid-area: down; }
+li { list-style: none; }
+a { color: #FFFFFF; text-decoration: none; }
+a:hover, a:focus { color: #FFFFFF; outline: 0; }
 
-.ptz-zoom-group {
+/* ── Header (#2D2D2D, 40px) ─────────────────── */
+.header {
+    height: 40px;
+    background-color: #2D2D2D;
     display: flex;
-    gap: 6px;
+    align-items: center;
+    flex-shrink: 0;
+    z-index: 100;
+}
+.header .logo {
+    width: 120px;
+    height: 39px;
+    background: url('../images/logo.png') center center no-repeat;
+    margin-left: 15px;
+    margin-right: 65px;
+    flex-shrink: 0;
+}
+.header .nav {
+    display: flex;
+    height: 40px;
+    line-height: 40px;
+}
+.header .nav li a {
+    display: block;
+    width: 120px;
+    text-align: center;
+    font-size: 14px;
+    cursor: pointer;
+    color: #FFFFFF;
+}
+.header .nav li a:hover {
+    text-decoration: none;
+}
+.header .nav li.active {
+    font-weight: 700;
+}
+.header .nav li.active a {
+    color: #FFFFFF;
+    background-color: #D8151D;
+}
+.header .header-r {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    height: 40px;
+    line-height: 40px;
+    margin-right: 10px;
+}
+.header .header-r .user,
+.header .header-r .help,
+.header .header-r .exit {
+    margin-right: 25px;
+    color: #FFFFFF;
+    cursor: default;
+}
+.header .header-r .exit { cursor: pointer; }
+.header .header-r .split { margin-right: 25px; color: #555; }
+
+/* Header icons — use real header-icons.png sprite */
+.header .header-r .user .icon {
+    display: inline-block;
+    width: 15px;
+    height: 40px;
+    margin-right: 7px;
+    vertical-align: middle;
+    background: url('../images/header-icons.png') 0 center no-repeat;
+}
+.header .header-r .help .icon {
+    display: inline-block;
+    width: 15px;
+    height: 40px;
+    margin-right: 7px;
+    vertical-align: middle;
+    background: url('../images/header-icons.png') -20px center no-repeat;
+}
+.header .header-r .exit .icon {
+    display: inline-block;
+    width: 12px;
+    height: 40px;
+    margin-right: 7px;
+    vertical-align: middle;
+    background: url('../images/header-icons.png') -40px center no-repeat;
+}
+
+/* ── Footer ──────────────────────────────────── */
+.footer {
+    height: 24px;
+    line-height: 24px;
+    text-align: center;
+    color: #A0A0A0;
+    flex-shrink: 0;
+    background: #FFFFFF;
+}
+
+/* ── Toolbar (below video, matching width) ─────── */
+.tool {
+    height: 28px;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    flex-shrink: 0;
+    background: #fff;
+    border: 1px solid #D4D4D4;
+    border-top: 0;
+}
+.tool-l {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+}
+.tool-r {
+    margin-left: auto;
+    display: flex;
     align-items: center;
 }
-.ptz-zoom-btn {
-    width: 28px; height: 28px;
-    border: 1px solid var(--border-color);
-    border-radius: 50%;
-    background: var(--btn-bg);
-    color: var(--text-primary);
-    font-size: 16px;
-    cursor: pointer;
-    display: flex;
+.tool .btn {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.15s;
-    line-height: 1;
+    width: 28px;
+    height: 24px;
+    padding: 5px;
+    margin: 0 1px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    background: #FFFFFF;
 }
-.ptz-zoom-btn:hover { background: var(--btn-hover); }
-.ptz-zoom-label {
-    font-size: 10px;
-    color: var(--text-secondary);
-    width: 32px;
+.tool .btn:hover {
+    padding: 4px;
+    border: 1px solid #C5C5C5;
+}
+.tool .btn[disabled] {
+    opacity: 0.4;
+    cursor: default;
+}
+.tool .btn[disabled]:hover {
+    padding: 5px;
+    border: 1px solid transparent;
+}
+/* Tool icons — use real tool-icons.png sprite */
+.tool .btn i {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    background: url('../images/tool-icons.png') no-repeat;
+}
+.tool i.icon-wnd-1     { background-position: -6px -5px; }
+.tool i.icon-capture   { background-position: -5px -117px; }
+.tool i.icon-record    { background-position: -64px -147px; }
+.tool i.icon-ezoom     { background-position: -93px -147px; }
+.tool i.icon-sound     { background-position: -63px -117px; }
+.tool i.icon-full      { background-position: -34px -117px; }
+
+/* ── Main Content ────────────────────────────── */
+.main-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.content-area {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+/* ── Video Preview Area ──────────────────────── */
+.preview {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 16px 8px 8px 8px;
+    background: #FFFFFF;
+}
+.preview .layout-center-inner {
+    flex: 1;
+    overflow: hidden;
+    border: 1px solid #D4D4D4;
+    border-bottom: 0;
+    position: relative;
+}
+.plugin {
+    height: 100%;
+    background-color: #343434;
+    margin: 0 auto;
+    position: relative;
+    cursor: default;
+}
+.plugin canvas {
+    display: block;
+}
+
+/* ── PTZ Right Panel ─────────────────────────── */
+.layout-east {
+    width: 200px;
+    flex-shrink: 0;
+    padding: 16px 10px 8px 5px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.ptz {
+    background: #FFFFFF;
+    padding-bottom: 10px;
+}
+.ptz .ptz-name {
+    height: 35px;
+    line-height: 35px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #bb2230;
+    border-bottom: 1px solid #E2E2E2;
+    padding-left: 10px;
     text-align: center;
 }
-.ptz-speed {
-    display: flex;
-    gap: 2px;
+.ptz .ptz-name .ptz-title-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+    vertical-align: middle;
+    background: url('../images/config-icons.png') -295px -83px no-repeat;
 }
-.ptz-speed-dot {
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    background: #444;
+/* ── PTZ Control ── */
+.ptz .ptz-ctrl {
+    height: 130px;
 }
-.ptz-speed-dot.active { background: var(--accent); }
-
-/* ---- Drag hint ---- */
-.drag-hint {
-    position: fixed;
-    bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 12px;
-    color: rgba(255,255,255,0.35);
-    z-index: 85;
+.ptz .ptz-ctrl-l {
+    float: left;
+    margin-top: 10px;
+    width: 115px;
+}
+.ptz-ctrl-l .direction {
+    float: left;
+    width: 32px;
+    height: 32px;
+    margin: 0 4px 4px 0;
+    cursor: pointer;
+    background-image: url('../images/ptz-icons.png');
+    background-color: #FFFFFF;
+    background-position: 0 -90px;
+}
+.ptz-ctrl-l .direction i {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    margin: 1px 1px;
+    background: url('../images/ptz-icons.png') no-repeat;
     pointer-events: none;
-    transition: opacity 0.8s;
+}
+.ptz-ctrl-l .direction i:hover {
+    background-image: url('../images/ptz-icons-on.png');
+}
+/* Direction arrow positions from ptz-icons.png */
+.ptz i.icon-ptz-left-up    { background-position: 0 0; }
+.ptz i.icon-ptz-up         { background-position: -30px 0; }
+.ptz i.icon-ptz-right-up   { background-position: -60px 0; }
+.ptz i.icon-ptz-left       { background-position: 0 -30px; }
+.ptz i.icon-ptz-auto       { background-position: -30px -30px; }
+.ptz i.icon-ptz-right      { background-position: -60px -30px; }
+.ptz i.icon-ptz-left-down  { background-position: 0 -60px; }
+.ptz i.icon-ptz-down       { background-position: -30px -60px; }
+.ptz i.icon-ptz-right-down { background-position: -60px -60px; }
+
+.ptz .ptz-ctrl-r {
+    float: left;
+    margin-top: 10px;
+    text-align: right;
+    width: 75px;
+}
+/* Zoom/Focus/Iris operation wrappers */
+.ptz-ctrl-r .operation {
+    float: left;
+    width: 75px;
+    height: 32px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    background-image: url('../images/ptz-icons.png');
+    background-color: #FFFFFF;
+    background-position: -32px -90px;
+}
+.ptz-ctrl-r .operation i {
+    float: left;
+    width: 36px;
+    height: 30px;
+    margin: 1px 0 1px 1px;
+    background: url('../images/ptz-icons.png') no-repeat;
+    cursor: pointer;
+}
+.ptz-ctrl-r .operation i:hover {
+    background-image: url('../images/ptz-icons-on.png');
+}
+/* Zoom/Focus/Iris positions from ptz-icons.png */
+.ptz-ctrl-r i.icon-ptz-zoomout  { background-position: -90px 0; }
+.ptz-ctrl-r i.icon-ptz-zoomin   { background-position: -126px 0; }
+.ptz-ctrl-r i.icon-ptz-focusout { background-position: -90px -30px; }
+.ptz-ctrl-r i.icon-ptz-focusin  { background-position: -126px -30px; }
+.ptz-ctrl-r i.icon-ptz-irisout  { background-position: -90px -60px; }
+.ptz-ctrl-r i.icon-ptz-irisin   { background-position: -126px -60px; }
+
+/* ── PTZ Speed Row ───────────────────────────── */
+.ptz-speed-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 0 10px;
+}
+.ptz-speed-label {
+    font-size: 11px;
+    color: #555;
+}
+.ptz-speed-dots {
+    display: flex;
+    gap: 4px;
+    cursor: pointer;
+}
+.speed-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #CCC;
+}
+.speed-dot.active {
+    background: #D8151D;
 }
 
-/* ---- Responsive: small screens ---- */
+/* ── PTZ Preset List (Hikvision-style, 32 entries) ── */
+.ptz-preset-list {
+    flex: 1;
+    margin-top: 10px;
+    border: 1px solid #AAAAAA;
+    background: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+.ptz-preset-header {
+    height: 28px;
+    line-height: 28px;
+    font-weight: bold;
+    padding-left: 10px;
+    color: #FFFFFF;
+    background-color: #BB2230;
+    flex-shrink: 0;
+}
+.ptz-preset-header .preset-flag-icon {
+    display: inline-block;
+    width: 31px;
+    height: 31px;
+    margin-right: 6px;
+    vertical-align: middle;
+    background: url('../images/ptz-icons.png') -250px -68px no-repeat;
+}
+.ptz-preset-scroll {
+    flex: 1;
+    overflow-y: auto;
+}
+.ptz-preset-list .line {
+    height: 30px;
+    line-height: 30px;
+    cursor: pointer;
+    padding-left: 10px;
+    border-bottom: 1px solid #E2E2E2;
+}
+.ptz-preset-list .line:last-child {
+    border-bottom: 0;
+}
+.ptz-preset-list .line-select {
+    background-color: #EEEEEE;
+}
+.ptz-preset-list .line:hover {
+    background-color: #E0E0E0;
+}
+.ptz-preset-list .preset-index {
+    display: inline-block;
+    width: 24px;
+    color: #000000;
+    margin-right: 8px;
+}
+.ptz-preset-list .preset-name {
+    color: #999999;
+}
+
+/* ── OSD Date Overlay — pixel canvas rendered inside .plugin as part of camera feed ── */
+.osd-date-overlay {
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    z-index: 50;
+    pointer-events: none;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    width: auto;
+    height: auto;
+    max-width: 80%;
+}
+.osd-date-overlay.hidden {
+    display: none;
+}
+
+/* ── Mode Badge ──────────────────────────────── */
+.mode-badge {
+    position: fixed;
+    top: 56px;
+    right: 220px;
+    background: rgba(216,21,29,0.85);
+    color: #fff;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    z-index: 50;
+    pointer-events: none;
+    font-weight: 600;
+}
+
+/* ── Preview Overlay (simple spinner, no fade) ── */
+.preview-overlay {
+    position: absolute;
+    inset: 0;
+    background: #343434;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 120;
+}
+.preview-overlay.hidden {
+    display: none;
+}
+/* CSS-only spinning ring */
+.preview-spinner {
+    display: inline-block;
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(255,255,255,0.2);
+    border-top-color: #FFFFFF;
+    border-radius: 50%;
+    animation: preview-spin 0.8s linear infinite;
+}
+@keyframes preview-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Responsive ──────────────────────────────── */
+@media (max-width: 1024px) {
+    .header .nav li a { width: 90px; font-size: 12px; }
+    .header .header-r .user,
+    .header .header-r .help { display: none; }
+    .layout-east { width: 170px; }
+    .ptz .ptz-ctrl-l { width: 108px; }
+    .ptz-ctrl-l .direction { margin: 0 2px 2px 0; }
+}
 @media (max-width: 768px) {
-    .ptz-panel { right: 6px; bottom: 12px; padding: 7px; gap: 4px; }
-    .ptz-btn { width: 30px; height: 30px; font-size: 13px; }
-    .osd { font-size: 10px; top: 46px; left: 8px; }
+    .header .nav li:not(.active) { display: none; }
+    .header .logo { margin-right: 20px; }
+    .layout-east {
+        position: fixed;
+        right: 4px;
+        top: 72px;
+        bottom: auto;
+        max-height: calc(100vh - 100px);
+        z-index: 130;
+        border-radius: 4px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        width: 160px;
+        background: #fff;
+    }
 }

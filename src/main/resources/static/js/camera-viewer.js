@@ -1,21 +1,18 @@
 /**
- * HoneyCam — 360° Camera Viewer
- * Supports panorama video (preferred) and image fallback.
- * Includes startup deception delay and PTZ interaction logging.
+ * HoneyCam — Hikvision-style 360° Camera Viewer
+ * PTZ via buttons + keyboard only (no drag-to-pan).
  */
 (function () {
   'use strict';
 
+  /* ── DOM refs ─────────────────────────────────── */
   const viewport = document.getElementById('viewport');
-  const osdPan = document.getElementById('osdPan');
-  const osdTilt = document.getElementById('osdTilt');
-  const osdZoom = document.getElementById('osdZoom');
-  const osdTime = document.getElementById('osdTime');
-  const dragHint = document.getElementById('dragHint');
+  const hikOsd = document.getElementById('hikOsd');
+  const modeBadge = document.getElementById('modeBadge');
   const previewOverlay = document.getElementById('previewOverlay');
-  const previewProgressBar = document.getElementById('previewProgressBar');
-  const speedDots = document.querySelectorAll('.ptz-speed-dot');
+  const speedDots = document.querySelectorAll('.speed-dot');
 
+  /* ── Config from data attributes ──────────────── */
   const ptzEnabled = (document.body.dataset.ptzEnabled || 'true') === 'true';
   const panoramaMode = (document.body.dataset.panoramaMode || 'auto').toLowerCase();
   const panoramaVideoUrl = document.body.dataset.panoramaVideoUrl || '/media/360-demo.mp4';
@@ -26,26 +23,25 @@
   const autoPatrolPanDegrees = Number(document.body.dataset.autoPatrolPanDegrees || 35);
   const autoPatrolTiltDegrees = Number(document.body.dataset.autoPatrolTiltDegrees || 8);
   const autoPatrolCycleSeconds = Number(document.body.dataset.autoPatrolCycleSeconds || 18);
+  const cameraEpochStartSec = Number(document.body.dataset.cameraEpochStart || 0);
 
+  /* ── Constants ────────────────────────────────── */
   const CONFIG = {
     defaultFov: 75,
     minFov: 18,
     maxFov: 110,
     tiltMin: -65,
     tiltMax: 65,
-    panSensitivity: 0.0035,
-    tiltSensitivity: 0.0035,
-    zoomSensitivity: 0.08,
-    inertiaDamping: 0.92,
-    inertiaThreshold: 0.0005,
-    logDebounce: 600,
-    speedLevels: [0.3, 0.8, 1.8],
+    tiltMinRad: -65 * Math.PI / 180,
+    tiltMaxRad: 65 * Math.PI / 180,
+    inertiaDamping: 0.88,
+    inertiaThreshold: 0.0003,
+    logDebounceMs: 600,
+    speedLevels: [0.06, 0.08, 0.1],
   };
 
-  let camera;
-  let scene;
-  let renderer;
-  let sphere;
+  /* ── State ────────────────────────────────────── */
+  let camera, scene, renderer, sphere;
   let liveVideoEl = null;
   let panAngle = 0;
   let tiltAngle = 0;
@@ -53,10 +49,6 @@
   let speedLevel = 0;
   let velocityX = 0;
   let velocityY = 0;
-  let isDragging = false;
-  let lastMouseX = 0;
-  let lastMouseY = 0;
-  let lastMoveTime = 0;
   let loggedPan = 0;
   let loggedTilt = 0;
   let loggedFov = fov;
@@ -64,47 +56,31 @@
   let buttonInterval = null;
   let buttonAction = null;
   let autoPatrolStartMs = null;
+  let osdTimer = null;
 
+  /* ── Helpers ──────────────────────────────────── */
   function clamp(num, min, max) {
     return Math.max(min, Math.min(max, num));
   }
 
   function randomBetween(min, max) {
-    const safeMin = Math.min(min, max);
-    const safeMax = Math.max(min, max);
-    return Math.floor(Math.random() * (safeMax - safeMin + 1)) + safeMin;
+    return Math.floor(Math.random() * (Math.max(min, max) - Math.min(min, max) + 1)) + Math.min(min, max);
   }
 
+  /* ── Preview overlay ──────────────────────────── */
   function showPreviewOverlay(durationMs) {
-    if (!previewOverlay || !previewProgressBar) return Promise.resolve();
+    if (!previewOverlay) return Promise.resolve();
     previewOverlay.classList.remove('hidden');
-    previewProgressBar.style.width = '0%';
-    const start = performance.now();
-    return new Promise((resolve) => {
-      function step(now) {
-        const progress = clamp((now - start) / Math.max(durationMs, 1), 0, 1);
-        previewProgressBar.style.width = (progress * 100).toFixed(0) + '%';
-        if (progress < 1) {
-          requestAnimationFrame(step);
-          return;
-        }
-        resolve();
-      }
-      requestAnimationFrame(step);
-    });
+    return new Promise((resolve) => setTimeout(resolve, Math.max(durationMs, 1)));
   }
 
   function hidePreviewOverlay() {
     if (previewOverlay) previewOverlay.classList.add('hidden');
   }
 
+  /* ── Interaction logging ──────────────────────── */
   function logInteraction(actionType, extra) {
-    const body = Object.assign({
-      actionType,
-      panAngle,
-      tiltAngle,
-      fov,
-    }, extra || {});
+    const body = Object.assign({ actionType, panAngle, tiltAngle, fov }, extra || {});
     fetch('/api/interaction', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -113,31 +89,100 @@
   }
 
   function debouncedLog(actionType) {
-    const panChanged = Math.abs(panAngle - loggedPan) > 0.008;
-    const tiltChanged = Math.abs(tiltAngle - loggedTilt) > 0.008;
-    const fovChanged = Math.abs(fov - loggedFov) > 0.5;
-    if (!panChanged && !tiltChanged && !fovChanged) return;
+    if (Math.abs(panAngle - loggedPan) < 0.008 &&
+        Math.abs(tiltAngle - loggedTilt) < 0.008 &&
+        Math.abs(fov - loggedFov) < 0.5) return;
     if (logTimer) clearTimeout(logTimer);
     logTimer = setTimeout(() => {
       loggedPan = panAngle;
       loggedTilt = tiltAngle;
       loggedFov = fov;
       logInteraction(actionType, { deltaX: 0, deltaY: 0, panAngle, tiltAngle, fov });
-    }, CONFIG.logDebounce);
+    }, CONFIG.logDebounceMs);
+  }
+
+  /* ── OSD pixel-canvas rendering ─────────────────── */
+  // Renders text on low-res offscreen canvas, thresholds alpha to strip anti-aliasing,
+  // then scales up 3× with nearest-neighbour for crisp dot-matrix look (no halo).
+  const OSD_FONT_SIZE = 18;
+  const OSD_CANVAS_W = 240;
+  const OSD_CANVAS_H = 22;
+  const OSD_SCALE = 3;
+  let osdOffscreen = null;
+  let osdOffCtx = null;
+  let osdVisCtx = null;
+
+  function initOsdCanvas() {
+    if (!hikOsd) return;
+    osdOffscreen = document.createElement('canvas');
+    osdOffscreen.width = OSD_CANVAS_W;
+    osdOffscreen.height = OSD_CANVAS_H;
+    osdOffCtx = osdOffscreen.getContext('2d', { willReadFrequently: true });
+    osdOffCtx.textBaseline = 'top';
+    osdOffCtx.font = OSD_FONT_SIZE + 'px Arial, Helvetica, sans-serif';
+    hikOsd.width = OSD_CANVAS_W * OSD_SCALE;
+    hikOsd.height = OSD_CANVAS_H * OSD_SCALE;
+    osdVisCtx = hikOsd.getContext('2d');
+    osdVisCtx.imageSmoothingEnabled = false;
+  }
+
+  /** Threshold alpha channel: every pixel becomes fully opaque white or fully transparent. */
+  function thresholdAlpha(imageData) {
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      // r, g, b all set to 255 (white); alpha thresholded at 50%
+      if (data[i + 3] >= 128) {
+        data[i] = 255;
+        data[i + 1] = 255;
+        data[i + 2] = 255;
+        data[i + 3] = 255;
+      } else {
+        data[i + 3] = 0;
+      }
+    }
+    return imageData;
   }
 
   function updateOsd() {
-    const panDeg = ((panAngle * 180 / Math.PI) % 360 + 360) % 360;
-    osdPan.textContent = panDeg.toFixed(1) + '°';
-    osdTilt.textContent = (tiltAngle * 180 / Math.PI).toFixed(1) + '°';
-    osdZoom.textContent = fov.toFixed(1) + '°';
-    osdTime.textContent = new Date().toTimeString().slice(0, 8);
+    if (!osdOffCtx || !osdVisCtx) return;
+    // Camera clock: elapsed real seconds since the camera went online
+    const nowSec = Date.now() / 1000;
+    const cameraSec = Math.floor(nowSec - cameraEpochStartSec);
+    const d = new Date(cameraSec * 1000);
+
+    const yyyy = d.getUTCFullYear();
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(d.getUTCDate()).padStart(2, '0');
+    const hh = String(d.getUTCHours()).padStart(2, '0');
+    const mi = String(d.getUTCMinutes()).padStart(2, '0');
+    const ss = String(d.getUTCSeconds()).padStart(2, '0');
+    const text = yyyy + '-' + mm + '-' + dd + '  ' + hh + ':' + mi + ':' + ss;
+
+    // 1. Draw text on offscreen canvas (browser anti-aliases)
+    osdOffCtx.clearRect(0, 0, OSD_CANVAS_W, OSD_CANVAS_H);
+    osdOffCtx.fillStyle = '#FFFFFF';
+    osdOffCtx.fillText(text, 4, 4);
+
+    // 2. Threshold alpha to strip all anti-aliasing (no gray pixels → no halo)
+    const raw = osdOffCtx.getImageData(0, 0, OSD_CANVAS_W, OSD_CANVAS_H);
+    osdOffCtx.putImageData(thresholdAlpha(raw), 0, 0);
+
+    // 3. Scale up 3× with nearest-neighbour
+    const dw = OSD_CANVAS_W * OSD_SCALE;
+    const dh = OSD_CANVAS_H * OSD_SCALE;
+    osdVisCtx.clearRect(0, 0, dw, dh);
+    osdVisCtx.drawImage(osdOffscreen, 0, 0, dw, dh);
+  }
+
+  function showOsd() {
+    if (hikOsd) hikOsd.classList.remove('hidden');
   }
 
   function updateSpeedDots() {
     speedDots.forEach((dot, i) => dot.classList.toggle('active', i <= speedLevel));
   }
 
+  /* ── Panorama loading ─────────────────────────── */
   function loadPanoramaImageTexture(material) {
     return new Promise((resolve, reject) => {
       const loader = new THREE.TextureLoader();
@@ -177,10 +222,7 @@
         video.removeEventListener('error', onErr);
       }
 
-      function onErr() {
-        cleanup();
-        reject(new Error('failed to load video panorama'));
-      }
+      function onErr() { cleanup(); reject(new Error('failed to load video panorama')); }
 
       function onReady() {
         cleanup();
@@ -202,14 +244,16 @@
     });
   }
 
+  /* ── Three.js init ────────────────────────────── */
   async function initThree() {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(window.innerWidth, window.innerHeight - 40);
+    const el = viewport;
+    renderer.setSize(el.clientWidth, el.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    viewport.appendChild(renderer.domElement);
+    el.appendChild(renderer.domElement);
 
-    camera = new THREE.PerspectiveCamera(fov, viewport.clientWidth / viewport.clientHeight, 1, 2000);
+    camera = new THREE.PerspectiveCamera(fov, el.clientWidth / el.clientHeight, 1, 2000);
     camera.position.set(0, 0, 0);
 
     scene = new THREE.Scene();
@@ -219,39 +263,27 @@
     sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
 
-    viewport.classList.add('loading');
     let loaded = false;
     const preferVideo = panoramaMode === 'video' || panoramaMode === 'auto';
-
     if (preferVideo) {
-      try {
-        await loadPanoramaVideoTexture(material);
-        loaded = true;
-      } catch {
-        console.warn('Video panorama unavailable, fallback to image.');
-      }
+      try { await loadPanoramaVideoTexture(material); loaded = true; }
+      catch { console.warn('Video panorama unavailable, fallback to image.'); }
     }
-
     if (!loaded) {
-      try {
-        await loadPanoramaImageTexture(material);
-        loaded = true;
-      } catch {
-        console.warn('Image panorama unavailable, using dark placeholder.');
-      }
+      try { await loadPanoramaImageTexture(material); loaded = true; }
+      catch { console.warn('Image panorama unavailable, using dark placeholder.'); }
     }
 
-    viewport.classList.remove('loading');
     hidePreviewOverlay();
-    dragHint.style.opacity = '1';
-    if (!loaded) {
-      dragHint.textContent = 'Panorama media load failed, using placeholder.';
-    }
-    setTimeout(() => { dragHint.style.opacity = '0'; }, 5000);
-
+    // OSD appears only after the camera "stream" is live
+    initOsdCanvas();
+    showOsd();
     animate();
+    osdTimer = setInterval(updateOsd, 1000);
+    updateOsd();
   }
 
+  /* ── Animation loop ───────────────────────────── */
   function animate() {
     requestAnimationFrame(animate);
 
@@ -263,19 +295,14 @@
       panAngle = (autoPatrolPanDegrees * Math.sin(phase)) * Math.PI / 180;
       tiltAngle = (autoPatrolTiltDegrees * Math.sin(phase / 2)) * Math.PI / 180;
       fov = CONFIG.defaultFov;
-      updateOsd();
-    } else if (!isDragging) {
+    } else {
       if (Math.abs(velocityX) > CONFIG.inertiaThreshold || Math.abs(velocityY) > CONFIG.inertiaThreshold) {
         panAngle += velocityX;
         tiltAngle += velocityY;
-        const tiltMinRad = CONFIG.tiltMin * Math.PI / 180;
-        const tiltMaxRad = CONFIG.tiltMax * Math.PI / 180;
-        if (tiltAngle < tiltMinRad) { tiltAngle = tiltMinRad; velocityY = 0; }
-        if (tiltAngle > tiltMaxRad) { tiltAngle = tiltMaxRad; velocityY = 0; }
+        if (tiltAngle < CONFIG.tiltMinRad) { tiltAngle = CONFIG.tiltMinRad; velocityY = 0; }
+        if (tiltAngle > CONFIG.tiltMaxRad) { tiltAngle = CONFIG.tiltMaxRad; velocityY = 0; }
         velocityX *= CONFIG.inertiaDamping;
         velocityY *= CONFIG.inertiaDamping;
-        updateOsd();
-        debouncedLog('DRAG');
       } else {
         velocityX = 0;
         velocityY = 0;
@@ -283,9 +310,7 @@
     }
 
     sphere.rotation.y = panAngle;
-    const lookY = Math.sin(tiltAngle);
-    const lookZ = Math.cos(tiltAngle);
-    camera.lookAt(0, lookY, lookZ);
+    camera.lookAt(0, Math.sin(tiltAngle), Math.cos(tiltAngle));
 
     if (Math.abs(camera.fov - fov) > 0.05) {
       camera.fov += (fov - camera.fov) * 0.3;
@@ -294,138 +319,51 @@
     renderer.render(scene, camera);
   }
 
-  function getEventPos(e) {
-    if (e.touches && e.touches.length > 0) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    if (e.changedTouches && e.changedTouches.length > 0) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
-    return { x: e.clientX, y: e.clientY };
-  }
-
-  function onPointerDown(e) {
-    if (!ptzEnabled) return;
-    e.preventDefault();
-    isDragging = true;
-    velocityX = 0;
-    velocityY = 0;
-    const pos = getEventPos(e);
-    lastMouseX = pos.x;
-    lastMouseY = pos.y;
-    lastMoveTime = performance.now();
-    viewport.style.cursor = 'grabbing';
-    dragHint.style.opacity = '0';
-  }
-
-  function onPointerMove(e) {
-    if (!ptzEnabled) return;
-    e.preventDefault();
-    const pos = getEventPos(e);
-    const dx = pos.x - lastMouseX;
-    const dy = pos.y - lastMouseY;
-    const now = performance.now();
-    const dt = Math.max(now - lastMoveTime, 1);
-
-    if (isDragging) {
-      panAngle += dx * CONFIG.panSensitivity;
-      tiltAngle -= dy * CONFIG.tiltSensitivity;
-      const tiltMinRad = CONFIG.tiltMin * Math.PI / 180;
-      const tiltMaxRad = CONFIG.tiltMax * Math.PI / 180;
-      tiltAngle = clamp(tiltAngle, tiltMinRad, tiltMaxRad);
-      velocityX = (dx * CONFIG.panSensitivity) * (16.67 / dt);
-      velocityY = -(dy * CONFIG.tiltSensitivity) * (16.67 / dt);
-      updateOsd();
-    }
-
-    lastMouseX = pos.x;
-    lastMouseY = pos.y;
-    lastMoveTime = now;
-  }
-
-  function onPointerUp(e) {
-    if (!ptzEnabled || !isDragging) return;
-    isDragging = false;
-    viewport.style.cursor = 'grab';
-    const pos = getEventPos(e);
-    logInteraction('DRAG', {
-      deltaX: pos.x - lastMouseX || 0,
-      deltaY: pos.y - lastMouseY || 0,
-      panAngle,
-      tiltAngle,
-      fov,
-    });
-  }
-
-  function onWheel(e) {
-    if (!ptzEnabled) return;
-    e.preventDefault();
-    fov = clamp(fov + e.deltaY * CONFIG.zoomSensitivity, CONFIG.minFov, CONFIG.maxFov);
-    camera.fov = fov;
-    camera.updateProjectionMatrix();
-    updateOsd();
-    debouncedLog('ZOOM');
-  }
-
-  function applyButtonStep(getDelta) {
+  /* ── Button PTZ ───────────────────────────────── */
+  function applyStep(getDelta) {
     const speed = CONFIG.speedLevels[speedLevel];
-    const radPerDeg = Math.PI / 180;
-    const delta = getDelta(speed);
-    if (delta.pan) {
-      panAngle += delta.pan * radPerDeg;
-      velocityX = delta.pan * radPerDeg * 0.5;
-    }
-    if (delta.tilt) {
-      tiltAngle += delta.tilt * radPerDeg;
-      velocityY = delta.tilt * radPerDeg * 0.5;
-    }
-    if (delta.fov) {
-      fov = clamp(fov + delta.fov, CONFIG.minFov, CONFIG.maxFov);
-    }
-    const tMin = CONFIG.tiltMin * radPerDeg;
-    const tMax = CONFIG.tiltMax * radPerDeg;
-    tiltAngle = clamp(tiltAngle, tMin, tMax);
+    const rad = Math.PI / 180;
+    const d = getDelta(speed);
+    if (d.pan) { panAngle += d.pan * rad; velocityX = d.pan * rad * 0.5; }
+    if (d.tilt) { tiltAngle += d.tilt * rad; velocityY = d.tilt * rad * 0.5; }
+    if (d.fov) { fov = clamp(fov + d.fov, CONFIG.minFov, CONFIG.maxFov); }
+    tiltAngle = clamp(tiltAngle, CONFIG.tiltMinRad, CONFIG.tiltMaxRad);
     updateOsd();
   }
 
-  function startButtonPTZ(action, getDelta) {
+  function startPTZ(action, getDelta) {
     if (!ptzEnabled) return;
-    stopButtonPTZ();
+    stopPTZ();
     buttonAction = action;
-    applyButtonStep(getDelta);
-    buttonInterval = setInterval(() => applyButtonStep(getDelta), 40);
+    applyStep(getDelta);
+    buttonInterval = setInterval(() => applyStep(getDelta), 40);
   }
 
-  function stopButtonPTZ() {
+  function stopPTZ() {
     if (!buttonInterval) return;
     clearInterval(buttonInterval);
     buttonInterval = null;
-    logInteraction(buttonAction || 'PAN', { panAngle, tiltAngle, fov });
+    if (buttonAction) logInteraction(buttonAction, { panAngle, tiltAngle, fov });
     buttonAction = null;
   }
 
+  /* ── Keyboard controls ────────────────────────── */
   function onKeyDown(e) {
     if (!ptzEnabled) return;
-    const speed = CONFIG.speedLevels[speedLevel];
-    const radPerDeg = Math.PI / 180;
+    const s = CONFIG.speedLevels[speedLevel];
+    const r = Math.PI / 180;
     switch (e.key) {
-      case 'ArrowLeft': panAngle -= speed * radPerDeg; break;
-      case 'ArrowRight': panAngle += speed * radPerDeg; break;
-      case 'ArrowUp': tiltAngle += speed * radPerDeg; break;
-      case 'ArrowDown': tiltAngle -= speed * radPerDeg; break;
-      case '+':
-      case '=': fov = Math.max(CONFIG.minFov, fov - speed * 2); break;
-      case '-':
-      case '_': fov = Math.min(CONFIG.maxFov, fov + speed * 2); break;
-      case '0':
-        panAngle = 0;
-        tiltAngle = 0;
-        fov = CONFIG.defaultFov;
-        velocityX = 0;
-        velocityY = 0;
-        break;
+      case 'ArrowLeft':  panAngle -= s * r; break;
+      case 'ArrowRight': panAngle += s * r; break;
+      case 'ArrowUp':    tiltAngle += s * r; break;
+      case 'ArrowDown':  tiltAngle -= s * r; break;
+      case '+': case '=': fov = Math.max(CONFIG.minFov, fov - s * 2); break;
+      case '-': case '_': fov = Math.min(CONFIG.maxFov, fov + s * 2); break;
+      case '0': panAngle = 0; tiltAngle = 0; fov = CONFIG.defaultFov; velocityX = 0; velocityY = 0; break;
       default: return;
     }
     e.preventDefault();
-    const tMin = CONFIG.tiltMin * radPerDeg;
-    const tMax = CONFIG.tiltMax * radPerDeg;
-    tiltAngle = clamp(tiltAngle, tMin, tMax);
+    tiltAngle = clamp(tiltAngle, CONFIG.tiltMinRad, CONFIG.tiltMaxRad);
     updateOsd();
     debouncedLog('PAN');
   }
@@ -435,79 +373,102 @@
     updateSpeedDots();
   }
 
+  /* ── Wheel zoom ───────────────────────────────── */
+  function onWheel(e) {
+    if (!ptzEnabled) return;
+    e.preventDefault();
+    fov = clamp(fov + e.deltaY * 0.02, CONFIG.minFov, CONFIG.maxFov);
+    camera.fov = fov;
+    camera.updateProjectionMatrix();
+    updateOsd();
+    debouncedLog('ZOOM');
+  }
+
+  /* ── Resize ───────────────────────────────────── */
   function onResize() {
-    if (!renderer || !camera) return;
-    const w = window.innerWidth;
-    const h = window.innerHeight - 40;
+    if (!renderer || !camera || !viewport) return;
+    const w = viewport.clientWidth;
+    const h = viewport.clientHeight;
     renderer.setSize(w, h);
     camera.aspect = w / Math.max(h, 1);
     camera.updateProjectionMatrix();
   }
 
+  /* ── Full-screen ──────────────────────────────── */
+  function toggleFullScreen() {
+    const el = viewport;
+    if (!document.fullscreenElement) { el.requestFullscreen().catch(() => {}); }
+    else { document.exitFullscreen(); }
+  }
+
+  /* ── Bind events ──────────────────────────────── */
   function bindEvents() {
-    viewport.addEventListener('mousedown', onPointerDown);
-    window.addEventListener('mousemove', onPointerMove);
-    window.addEventListener('mouseup', onPointerUp);
-    viewport.addEventListener('touchstart', onPointerDown, { passive: false });
-    window.addEventListener('touchmove', onPointerMove, { passive: false });
-    window.addEventListener('touchend', onPointerUp);
     viewport.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('resize', onResize);
+    window.addEventListener('fullscreenchange', onResize);
 
-    document.getElementById('btnPanLeft').addEventListener('pointerdown', () => startButtonPTZ('PAN', (s) => ({ pan: -s, tilt: 0 })));
-    document.getElementById('btnPanRight').addEventListener('pointerdown', () => startButtonPTZ('PAN', (s) => ({ pan: s, tilt: 0 })));
-    document.getElementById('btnTiltUp').addEventListener('pointerdown', () => startButtonPTZ('TILT', (s) => ({ pan: 0, tilt: s })));
-    document.getElementById('btnTiltDown').addEventListener('pointerdown', () => startButtonPTZ('TILT', (s) => ({ pan: 0, tilt: -s })));
-    document.getElementById('btnZoomIn').addEventListener('pointerdown', () => startButtonPTZ('ZOOM', (s) => ({ pan: 0, tilt: 0, fov: -s * 3 })));
-    document.getElementById('btnZoomOut').addEventListener('pointerdown', () => startButtonPTZ('ZOOM', (s) => ({ pan: 0, tilt: 0, fov: s * 3 })));
-    window.addEventListener('pointerup', stopButtonPTZ);
-    window.addEventListener('pointerleave', stopButtonPTZ);
-    document.getElementById('btnSpeed')?.addEventListener('click', cycleSpeed);
+    // Direction pad: bind pairs to startPTZ/getDelta
+    function bindPTZ(id, action, getDelta) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('pointerdown', () => startPTZ(action, getDelta));
+      }
+    }
+    bindPTZ('btnTiltUp',       'TILT', (s) => ({ pan: 0, tilt: s }));
+    bindPTZ('btnTiltDown',     'TILT', (s) => ({ pan: 0, tilt: -s }));
+    bindPTZ('btnPanLeft',      'PAN',  (s) => ({ pan: -s, tilt: 0 }));
+    bindPTZ('btnPanRight',     'PAN',  (s) => ({ pan: s, tilt: 0 }));
+    bindPTZ('btnPanLeftUp',    'PAN',  (s) => ({ pan: -s, tilt: s }));
+    bindPTZ('btnPanRightUp',   'PAN',  (s) => ({ pan: s, tilt: s }));
+    bindPTZ('btnPanLeftDown',  'PAN',  (s) => ({ pan: -s, tilt: -s }));
+    bindPTZ('btnPanRightDown', 'PAN',  (s) => ({ pan: s, tilt: -s }));
+    bindPTZ('btnZoomIn',       'ZOOM', (s) => ({ pan: 0, tilt: 0, fov: -s * 3 }));
+    bindPTZ('btnZoomOut',      'ZOOM', (s) => ({ pan: 0, tilt: 0, fov: s * 3 }));
+
+    window.addEventListener('pointerup', stopPTZ);
+    window.addEventListener('pointerleave', stopPTZ);
+
+    const speedBtn = document.getElementById('btnSpeed');
+    if (speedBtn) speedBtn.addEventListener('click', cycleSpeed);
+
+    const fsBtn = document.getElementById('btnFullScreen');
+    if (fsBtn) fsBtn.addEventListener('click', toggleFullScreen);
+
+    // Logout
+    const logoutBtn = document.getElementById('btnLogout');
+    if (logoutBtn) logoutBtn.addEventListener('click', () => { window.location.href = '/login'; });
   }
 
+  /* ── Startup ──────────────────────────────────── */
   function start() {
-    const bootDelay = randomBetween(previewLatencyMinMs, previewLatencyMaxMs);
-    showPreviewOverlay(bootDelay).then(() => initThree());
+    const delay = randomBetween(previewLatencyMinMs, previewLatencyMaxMs);
+    showPreviewOverlay(delay).then(() => initThree());
     bindEvents();
     updateOsd();
     updateSpeedDots();
     fetch('/api/session/start', { method: 'POST' }).catch(() => {});
+
     if (!ptzEnabled) {
       const panel = document.getElementById('ptzPanel');
       if (panel) panel.style.display = 'none';
-      dragHint.textContent = autoPatrolEnabled
-        ? 'Low-interaction mode: auto patrol loop running'
-        : 'Low-interaction mode: PTZ disabled';
-      dragHint.style.opacity = '0.95';
+      if (modeBadge) modeBadge.style.display = '';
     }
   }
 
+  /* ── Cleanup ──────────────────────────────────── */
   window.addEventListener('beforeunload', () => {
-    if (liveVideoEl) {
-      liveVideoEl.pause();
-      liveVideoEl.src = '';
-      liveVideoEl.load();
-      liveVideoEl = null;
-    }
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon('/api/session/end');
-    } else {
-      fetch('/api/session/end', { method: 'POST', keepalive: true }).catch(() => {});
-    }
+    if (liveVideoEl) { liveVideoEl.pause(); liveVideoEl.src = ''; liveVideoEl.load(); liveVideoEl = null; }
+    if (osdTimer) clearInterval(osdTimer);
+    if (navigator.sendBeacon) { navigator.sendBeacon('/api/session/end'); }
+    else { fetch('/api/session/end', { method: 'POST', keepalive: true }).catch(() => {}); }
   });
 
+  /* ── Wait for Three.js ────────────────────────── */
   function waitForThree() {
-    if (typeof THREE !== 'undefined') {
-      start();
-    } else {
-      setTimeout(waitForThree, 100);
-    }
+    if (typeof THREE !== 'undefined') { start(); }
+    else { setTimeout(waitForThree, 100); }
   }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', waitForThree);
-  } else {
-    waitForThree();
-  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', waitForThree); }
+  else { waitForThree(); }
 })();
