@@ -130,21 +130,6 @@ python scripts/analyze_logs.py --log-dir logs --out-dir analysis-output
 - `analysis-output/metrics-summary.json` — 转化率 + 停留时长统计
 - `analysis-output/dwell-time-cdf.csv` — 停留时长经验 CDF
 
-## Git 提交历史
-
-| 提交 | 说明 |
-|------|------|
-| `62999a4` | 登录页按 Enter 键触发登录 |
-| `6d1e652` | 添加白名单账号密码，登录必然成功 |
-| `4120120` | 重新设计 UI，高度模仿海康威视 |
-| `fa19dec` | 重构：提取 HoneyCamProperties，拆分 PageController |
-| `03ab483` | 补充循环播放和抓包脚本 |
-| `bd59211` | 添加 Fake RTSP Server (554) |
-| `0eee0c9` | 实现 Three.js 360° 全景查看器 + PTZ |
-| `e253add` | 更新 CLAUDE.md |
-| `60c06a0` | 构建后端骨架 |
-| `1b0a30b` | 首次提交 |
-
 ## 待完成工作
 
 详见 [PROGRESS.md](PROGRESS.md)
