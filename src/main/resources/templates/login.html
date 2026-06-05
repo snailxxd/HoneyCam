@@ -362,12 +362,28 @@
 
 <!-- ── Form submit handler ──────────────────────── -->
 <script>
-    document.getElementById('loginForm').addEventListener('submit', function() {
-        document.getElementById('usernameHidden').value =
-            document.getElementById('username').value;
-        document.getElementById('passwordHidden').value =
-            document.getElementById('password').value;
+    var form = document.getElementById('loginForm');
+    var usernameEl = document.getElementById('username');
+    var passwordEl = document.getElementById('password');
+    var usernameHidden = document.getElementById('usernameHidden');
+    var passwordHidden = document.getElementById('passwordHidden');
+
+    form.addEventListener('submit', function() {
+        usernameHidden.value = usernameEl.value;
+        passwordHidden.value = passwordEl.value;
     });
+
+    /* Press Enter on username or password field to submit */
+    function onInputKeydown(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            usernameHidden.value = usernameEl.value;
+            passwordHidden.value = passwordEl.value;
+            form.submit();
+        }
+    }
+    usernameEl.addEventListener('keydown', onInputKeydown);
+    passwordEl.addEventListener('keydown', onInputKeydown);
 
     /* Language dropdown toggle */
     (function() {
