@@ -56,8 +56,18 @@ public class HoneyCamProperties {
         /** Probability (0–1) that a login attempt is "accepted" to let the attacker in. */
         private double fakeSuccessRate = 0.35;
 
+        /** Weak credential pairs that always succeed, format "username:password". */
+        private java.util.List<String> weakCredentials = java.util.List.of(
+            "admin:12345",
+            "admin:123456",
+            "admin:admin",
+            "root:root"
+        );
+
         public double getFakeSuccessRate() { return fakeSuccessRate; }
         public void setFakeSuccessRate(double fakeSuccessRate) { this.fakeSuccessRate = fakeSuccessRate; }
+        public java.util.List<String> getWeakCredentials() { return weakCredentials; }
+        public void setWeakCredentials(java.util.List<String> weakCredentials) { this.weakCredentials = weakCredentials; }
     }
 
     public static class Panorama {

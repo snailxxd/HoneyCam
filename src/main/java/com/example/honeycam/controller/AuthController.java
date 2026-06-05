@@ -99,10 +99,33 @@ public class AuthController {
         if (username == null || username.isBlank() || password == null || password.isBlank()) {
             return false;
         }
+        if (isWeakCredential(username, password)) {
+            return true;
+        }
         String normalized = username.trim().toLowerCase();
         double rate = props.getAuth().getFakeSuccessRate();
         double dynamicRate = likelyCameraUsers.contains(normalized) ? rate : rate * 0.4;
         return ThreadLocalRandom.current().nextDouble() < dynamicRate;
+    }
+
+    private boolean isWeakCredential(String username, String password) {
+        String normalizedUser = username.trim().toLowerCase();
+        String normalizedPass = password.trim();
+        for (String pair : props.getAuth().getWeakCredentials()) {
+            if (pair == null || pair.isBlank()) {
+                continue;
+            }
+            String[] parts = pair.split(":", 2);
+            if (parts.length != 2) {
+                continue;
+            }
+            String weakUser = parts[0].trim().toLowerCase();
+            String weakPass = parts[1].trim();
+            if (!weakUser.isEmpty() && normalizedUser.equals(weakUser) && normalizedPass.equals(weakPass)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String getClientIp(HttpServletRequest request) {
