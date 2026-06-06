@@ -102,27 +102,11 @@ public class HoneyCamProperties {
     public static class Interaction {
         /** Whether PTZ controls are enabled (false for Group B low-interaction). */
         private boolean ptzEnabled = true;
-        /** Whether the camera auto-pans periodically (simulates patrol). */
-        private boolean autoPatrolEnabled = false;
-        /** Pan degrees for auto-patrol sweep. */
-        private double autoPatrolPanDegrees = 35;
-        /** Tilt degrees for auto-patrol sweep. */
-        private double autoPatrolTiltDegrees = 8;
-        /** Seconds for one complete auto-patrol cycle. */
-        private double autoPatrolCycleSeconds = 18;
         /** Max sessions tracked per IP. */
         private int maxPerIp = 50;
 
         public boolean isPtzEnabled() { return ptzEnabled; }
         public void setPtzEnabled(boolean ptzEnabled) { this.ptzEnabled = ptzEnabled; }
-        public boolean isAutoPatrolEnabled() { return autoPatrolEnabled; }
-        public void setAutoPatrolEnabled(boolean autoPatrolEnabled) { this.autoPatrolEnabled = autoPatrolEnabled; }
-        public double getAutoPatrolPanDegrees() { return autoPatrolPanDegrees; }
-        public void setAutoPatrolPanDegrees(double autoPatrolPanDegrees) { this.autoPatrolPanDegrees = autoPatrolPanDegrees; }
-        public double getAutoPatrolTiltDegrees() { return autoPatrolTiltDegrees; }
-        public void setAutoPatrolTiltDegrees(double autoPatrolTiltDegrees) { this.autoPatrolTiltDegrees = autoPatrolTiltDegrees; }
-        public double getAutoPatrolCycleSeconds() { return autoPatrolCycleSeconds; }
-        public void setAutoPatrolCycleSeconds(double autoPatrolCycleSeconds) { this.autoPatrolCycleSeconds = autoPatrolCycleSeconds; }
         public int getMaxPerIp() { return maxPerIp; }
         public void setMaxPerIp(int maxPerIp) { this.maxPerIp = maxPerIp; }
     }

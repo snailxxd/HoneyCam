@@ -37,10 +37,6 @@ public class PageController {
         model.addAttribute("panoramaImageUrl",     pan.getImageUrl());
         model.addAttribute("previewLatencyMinMs",  dec.getPreviewLatencyMinMs());
         model.addAttribute("previewLatencyMaxMs",  dec.getPreviewLatencyMaxMs());
-        model.addAttribute("autoPatrolEnabled",    inter.isAutoPatrolEnabled());
-        model.addAttribute("autoPatrolPanDegrees", inter.getAutoPatrolPanDegrees());
-        model.addAttribute("autoPatrolTiltDegrees",inter.getAutoPatrolTiltDegrees());
-        model.addAttribute("autoPatrolCycleSeconds",inter.getAutoPatrolCycleSeconds());
         model.addAttribute("cameraEpochStart",      cam.getEpochStart());
 
         return "camera";

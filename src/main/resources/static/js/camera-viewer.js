@@ -8,7 +8,6 @@
   /* ── DOM refs ─────────────────────────────────── */
   const viewport = document.getElementById('viewport');
   const hikOsd = document.getElementById('hikOsd');
-  const modeBadge = document.getElementById('modeBadge');
   const previewOverlay = document.getElementById('previewOverlay');
   const speedDots = document.querySelectorAll('.speed-dot');
 
@@ -19,10 +18,6 @@
   const panoramaImageUrl = document.body.dataset.panoramaImageUrl || 'https://threejs.org/examples/textures/2294472375_24a3b8ef46_o.jpg';
   const previewLatencyMinMs = Number(document.body.dataset.previewLatencyMinMs || 300);
   const previewLatencyMaxMs = Number(document.body.dataset.previewLatencyMaxMs || 1400);
-  const autoPatrolEnabled = (document.body.dataset.autoPatrolEnabled || 'false') === 'true';
-  const autoPatrolPanDegrees = Number(document.body.dataset.autoPatrolPanDegrees || 35);
-  const autoPatrolTiltDegrees = Number(document.body.dataset.autoPatrolTiltDegrees || 8);
-  const autoPatrolCycleSeconds = Number(document.body.dataset.autoPatrolCycleSeconds || 18);
   const cameraEpochStartSec = Number(document.body.dataset.cameraEpochStart || 0);
 
   /* ── Constants ────────────────────────────────── */
@@ -55,7 +50,6 @@
   let logTimer = null;
   let buttonInterval = null;
   let buttonAction = null;
-  let autoPatrolStartMs = null;
   let osdTimer = null;
 
   /* ── Helpers ──────────────────────────────────── */
@@ -287,15 +281,7 @@
   function animate() {
     requestAnimationFrame(animate);
 
-    if (!ptzEnabled && autoPatrolEnabled) {
-      if (autoPatrolStartMs === null) autoPatrolStartMs = performance.now();
-      const elapsedSec = (performance.now() - autoPatrolStartMs) / 1000;
-      const cycle = Math.max(autoPatrolCycleSeconds, 2);
-      const phase = (2 * Math.PI * elapsedSec) / cycle;
-      panAngle = (autoPatrolPanDegrees * Math.sin(phase)) * Math.PI / 180;
-      tiltAngle = (autoPatrolTiltDegrees * Math.sin(phase / 2)) * Math.PI / 180;
-      fov = CONFIG.defaultFov;
-    } else {
+    if (ptzEnabled) {
       if (Math.abs(velocityX) > CONFIG.inertiaThreshold || Math.abs(velocityY) > CONFIG.inertiaThreshold) {
         panAngle += velocityX;
         tiltAngle += velocityY;
@@ -452,7 +438,6 @@
     if (!ptzEnabled) {
       const panel = document.getElementById('ptzPanel');
       if (panel) panel.style.display = 'none';
-      if (modeBadge) modeBadge.style.display = '';
     }
   }
 
