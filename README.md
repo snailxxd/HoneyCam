@@ -61,15 +61,15 @@
 ```
 
 默认端口：
-- HTTP: `8081`（环境变量 `HONEYCAM_HTTP_PORT` 覆盖）
+- HTTP: `80`（环境变量 `HONEYCAM_HTTP_PORT` 覆盖）
 - RTSP: `554`（环境变量 `HONEYCAM_RTSP_PORT` 覆盖）
 - ONVIF: `8000`（环境变量 `HONEYCAM_ONVIF_PORT` 覆盖）
 
 访问：`http://localhost:8081/` → 自动跳转到 `/login`
 
-## 实验分组配置
+## 构建运行
 
-### Group B（低交互对照 — 无 PTZ，静态画面）
+### Group B（低交互对照 — 无 PTZ）
 
 ```bash
 ./gradlew bootRun --args='--spring.profiles.active=group-b'
@@ -84,12 +84,6 @@
 ```
 
 特点：攻击者可自由控制 Pan/Tilt/Zoom，默认使用 360° 全景图片。
-
-### 实验部署（端口 80/554，需 root）
-
-```bash
-./gradlew bootRun --args='--spring.profiles.active=experiment'
-```
 
 ## 全景素材
 
@@ -131,7 +125,3 @@ python scripts/analyze_logs.py --log-dir logs --out-dir analysis-output
 输出：
 - `analysis-output/metrics-summary.json` — 转化率 + 停留时长统计
 - `analysis-output/dwell-time-cdf.csv` — 停留时长经验 CDF
-
-## 待完成工作
-
-详见 [PROGRESS.md](PROGRESS.md)
