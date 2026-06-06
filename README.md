@@ -14,7 +14,7 @@
 | Fake RTSP (554) | ✅ 完成 | OPTIONS/DESCRIBE/SETUP/PLAY/PAUSE/TEARDOWN |
 | Fake ONVIF (8000) | ✅ 完成 | Device/Media/PTZ 服务，SOAP XML 响应 |
 | 可配置欺骗策略 | ✅ 完成 | 概率性登录成功、白名单凭据、延迟预览 |
-| Group B/C 实验配置 | ✅ 完成 | 低交互自动巡航 / 高交互 PTZ |
+| Group B/C 实验配置 | ✅ 完成 | 低交互静态画面 / 高交互 PTZ |
 | 分析脚本 | ✅ 完成 | 转化率 + 停留时长 CDF |
 | 抓包脚本 | ✅ 完成 | Linux shell + Windows PowerShell |
 | RTMP (1935) | ❌ 跳过 | 已过时，缺失不降低欺骗度 |
@@ -70,13 +70,13 @@
 
 ## 实验分组配置
 
-### Group B（低交互对照 — 无 PTZ，自动巡航）
+### Group B（低交互对照 — 无 PTZ，静态画面）
 
 ```bash
 ./gradlew bootRun --args='--spring.profiles.active=group-b'
 ```
 
-特点：画面自动左右往返巡航，用户无法控制 PTZ。模拟静态循环播放视频。
+特点：画面静止不动，PTZ 面板隐藏，用户无法进行任何交互。
 
 ### Group C（高交互实验组 — 完整 PTZ）
 
@@ -110,7 +110,6 @@
 | `honeycam.deception.preview-latency-ms-min` | 300 | 预览加载最小延迟 |
 | `honeycam.deception.preview-latency-ms-max` | 1400 | 预览加载最大延迟 |
 | `honeycam.interaction.ptz-enabled` | true | PTZ 是否启用 |
-| `honeycam.interaction.auto-patrol-enabled` | false | 自动巡航是否启用 |
 | `honeycam.rtsp.port` | 554 | RTSP 监听端口 |
 | `honeycam.onvif.port` | 8000 | ONVIF 监听端口 |
 

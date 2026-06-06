@@ -40,7 +40,6 @@
 - [x] 惯性模拟（`inertiaDamping=0.88`）
 - [x] OSD 时间戳叠加层（像素级清晰渲染）
 - [x] 预览加载延迟遮罩（模拟真实相机流加载，300-1400ms 随机）
-- [x] 自动巡航模式（Group B 用，正弦波 Pan/Tilt）
 
 ### 1.4 Fake RTSP 服务器 (端口 554)
 
@@ -74,8 +73,8 @@
 
 ### 1.7 实验配置
 
-- [x] Group B profile：`ptz-enabled=false, auto-patrol=true, panorama=image`
-- [x] Group C profile：`ptz-enabled=true, auto-patrol=false, panorama=image`
+- [x] Group B profile：`ptz-enabled=false, panorama=auto`（静态画面，无交互）
+- [x] Group C profile：`ptz-enabled=true, panorama=auto`（完整 PTZ 交互）
 - [x] Experiment profile：`server.port=80, rtsp.port=554, onvif.port=8000, panorama=video`
 
 ### 1.8 分析工具与脚本
@@ -136,6 +135,8 @@ _暂无_
 | 2026-06-06 | ONVIF 8000 端口仿真 | 这是扫描器/Shodan 识别摄像头的最核心依据之一，80+554+8000 三重端口指纹覆盖率高 |
 | 2026-06-06 | 跳过 RTMP 1935 仿真 | RTMP 已过时 (Flash 不再支持)，现代摄像头多已不暴露此端口，缺失不降低 Honeyscore |
 | 2026-06-06 | 全景图片足够支撑实验 | 图片 vs 视频只影响交互阶段的视觉观感，PTZ 交互能力来自 Three.js FOV 变换，与素材格式无关 |
+| 2026-06-06 | 添加 favicon 并禁用默认错误页 | 消除 Spring Boot Whitelabel 指纹和空 favicon，降低扫描器检测风险 |
+| 2026-06-06 | 移除自动巡航功能 | 自动巡航正弦波运动不自然，Group B 改为纯静态画面，更接近"低交互对照"的论文定义 |
 
 ---
 
