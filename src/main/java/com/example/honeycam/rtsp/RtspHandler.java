@@ -27,17 +27,17 @@ public class RtspHandler implements Runnable {
     private static final Pattern SESSION = Pattern.compile("^Session:\\s*(\\S+)", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE);
     private static final Pattern TRANSPORT = Pattern.compile("^Transport:\\s*(.+)", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE);
 
-    private static final String SERVER_HEADER = "HoneyCam-RTSP/1.0";
+    private static final String SERVER_HEADER = "RtspServer/3.0";
 
     // --- Fake SDP (realistic H.264 IP camera) ---
     private static final String FAKE_SDP =
             "v=0\r\n" +
             "o=- %d 1 IN IP4 0.0.0.0\r\n" +
             "s=IP Camera Live Stream\r\n" +
-            "i=HoneyCam NC-360\r\n" +
+            "i=IP Camera Live Stream\r\n" +
             "c=IN IP4 0.0.0.0\r\n" +
             "t=0 0\r\n" +
-            "a=tool:HoneyCam RTSP Server\r\n" +
+            "a=tool:LIVE555 Streaming Media v2016.02.22\r\n" +
             "a=type:broadcast\r\n" +
             "a=control:*\r\n" +
             "a=range:npt=0-\r\n" +

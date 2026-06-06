@@ -3,6 +3,7 @@ package com.example.honeycam.service;
 import com.example.honeycam.config.HoneyCamProperties;
 import com.example.honeycam.model.InteractionEvent;
 import com.example.honeycam.model.LoginAttempt;
+import com.example.honeycam.model.OnvifRequest;
 import com.example.honeycam.model.RtspRequest;
 import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -97,6 +98,28 @@ public class LogService {
         logger.info("[RTSP] IP={}, method={}, url={}", ipAddress, method, url);
 
         appendToLog("rtsp-requests", request);
+        return request;
+    }
+
+    /**
+     * Log an ONVIF protocol request to the daily onvif-requests JSON file.
+     *
+     * @param ipAddress  attacker's or scanner's IP address
+     * @param method     HTTP method (usually POST for SOAP)
+     * @param path       URL path (/onvif/device_service, etc.)
+     * @param soapAction the SOAPAction header value
+     * @param requestBody first 2000 chars of the SOAP request body
+     * @return the recorded OnvifRequest
+     */
+    public OnvifRequest logOnvifRequest(String ipAddress, String method, String path,
+                                         String soapAction, String requestBody) {
+        OnvifRequest request = new OnvifRequest(ipAddress, method, path, soapAction, requestBody);
+        request.setId(UUID.randomUUID().toString());
+
+        logger.info("[ONVIF] IP={}, method={}, path={}, action={}",
+                ipAddress, method, path, soapAction);
+
+        appendToLog("onvif-requests", request);
         return request;
     }
 

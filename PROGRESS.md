@@ -1,8 +1,8 @@
 # HoneyCam 项目进展记录
 
-> 最后更新：2026-06-05
+> 最后更新：2026-06-06
 
-## 总体进度：原型开发阶段（约 60%）
+## 总体进度：原型开发阶段（约 70%）
 
 ---
 
@@ -52,20 +52,33 @@
 - [x] RTSP 请求 → JSONL 日志
 - [x] 应用启动自动启动，关闭时优雅停止
 
-### 1.5 日志系统
+### 1.5 Fake ONVIF 服务器 (端口 8000) — 2026-06-06 新增
+
+- [x] TCP ServerSocket 监听端口 8000
+- [x] 支持 ONVIF Device Service：GetDeviceInformation / GetCapabilities / GetSystemDateAndTime / GetServices / GetScopes / GetNetworkInterfaces / GetHostname / GetDeviceState
+- [x] 支持 ONVIF Media Service：GetProfiles / GetStreamUri / GetVideoSources / GetVideoEncoderConfigurations / GetSnapshotUri
+- [x] 支持 ONVIF PTZ Service：GetConfigurations / GetConfigurationOptions / GetStatus / GetNodes
+- [x] 真实 Hikvision-camera 风格 XML 响应（品牌、型号、固件版本、H.264 编码参数）
+- [x] SOAP 1.2 Envelope 格式正确
+- [x] PTZ 空间定义（PanTilt ±170°, Tilt ±65°, Zoom 1×-4×）
+- [x] `GetStreamUri` 指向本机 RTSP 554 端口，形成协议闭环
+- [x] ONVIF 请求 → JSONL 日志 (`onvif-requests`)
+- [x] 应用启动自动启动，关闭时优雅停止
+
+### 1.6 日志系统
 
 - [x] 按日切分 JSONL 文件
-- [x] 三类日志：`login-attempts` / `interactions` / `rtsp-requests`
+- [x] 四类日志：`login-attempts` / `interactions` / `rtsp-requests` / `onvif-requests`
 - [x] Session 追踪（`SESSION_START` / `SESSION_END`，含 dwell time）
 - [x] SLF4J 控制台同步输出
 
-### 1.6 实验配置
+### 1.7 实验配置
 
 - [x] Group B profile：`ptz-enabled=false, auto-patrol=true, panorama=image`
 - [x] Group C profile：`ptz-enabled=true, auto-patrol=false, panorama=image`
-- [x] Experiment profile：`server.port=80, rtsp.port=554, panorama=video`
+- [x] Experiment profile：`server.port=80, rtsp.port=554, onvif.port=8000, panorama=video`
 
-### 1.7 分析工具与脚本
+### 1.8 分析工具与脚本
 
 - [x] Python 日志分析脚本：转化率 + 停留时长 CDF
 - [x] Linux 抓包脚本 (`start_capture.sh`)
@@ -83,8 +96,6 @@ _暂无_
 
 ### 3.1 高优先级（实验必须）
 
-- [ ] **ONVIF 仿真（端口 8000）**：模拟 ONVIF 协议握手，让扫描器识别为真实摄像头
-- [ ] **RTMP 仿真（端口 1935）**：模拟 RTMP 握手，扩大服务指纹覆盖
 - [ ] **云服务器部署**：在 AWS/阿里云/腾讯云上实际部署并暴露到公网
 - [ ] **实验运行**：7-10 天并行运行 A/B/C 三组
 - [ ] **数据收集与分析**：汇总日志、计算指标、绘制 CDF 对比图
@@ -101,6 +112,7 @@ _暂无_
 
 ### 3.3 低优先级（改进项）
 
+- [ ] **RTMP 仿真（端口 1935）**：已过时协议，现代摄像头多已不再暴露，投入产出比低
 - [ ] **前后端分离架构**：按 HoneyCam 论文设计，分离 Frontend Honeypot / Backend Server / VPU
 - [ ] **MySQL 数据库**：替代 JSONL 文件存储
 - [ ] **TCP/IP 栈定制**：对抗 Nmap OS 指纹检测
@@ -121,20 +133,18 @@ _暂无_
 | 2026-06-01 | RTSP 仅做握手仿真不做 RTP 流 | RTP 实时流推送到每个连接者成本太高，且攻击者极少真正拉流 |
 | 2026-06-01 | 白名单弱密码 100% 放行 | 使用弱密码的很可能是真实攻击者/扫描器，放行可获取更多交互数据 |
 | 2026-06-05 | Enter 键触发登录 | 提升 UI 真实感，真实海康威视页面支持键盘操作 |
+| 2026-06-06 | ONVIF 8000 端口仿真 | 这是扫描器/Shodan 识别摄像头的最核心依据之一，80+554+8000 三重端口指纹覆盖率高 |
+| 2026-06-06 | 跳过 RTMP 1935 仿真 | RTMP 已过时 (Flash 不再支持)，现代摄像头多已不暴露此端口，缺失不降低 Honeyscore |
+| 2026-06-06 | 全景图片足够支撑实验 | 图片 vs 视频只影响交互阶段的视觉观感，PTZ 交互能力来自 Three.js FOV 变换，与素材格式无关 |
 
 ---
 
 ## 5. 下一步计划
 
-1. **添加 ONVIF 端口 8000 仿真** — 这是扫描器识别摄像头的重要依据
-2. **添加 RTMP 端口 1935 仿真** — 完善服务指纹
-3. **准备云部署** — 申请云服务器，配置公网 IP 和安全组
-4. **启动实验** — 三组并行运行 7-10 天
+1. **准备云部署** — 申请云服务器，配置公网 IP 和安全组（开放 80/554/8000）
+2. **部署测试** — 用 Shodan/Nmap 自测，确认三个端口均被正确识别为 Hikvision 摄像头
+3. **启动实验** — 三组并行运行 7-10 天
+4. **收集与分析** — 汇总日志、计算转化率/停留时长 CDF、对比三组数据
+5. **撰写最终报告** — 回答核心研究问题
 
 ---
-
-## 6. 参考文档
-
-- [CLAUDE.md](CLAUDE.md) — 项目详细说明和研究设计
-- [honeycam.md](honeycam.md) — HoneyCam 论文摘录
-- [README.md](README.md) — 运行指南和配置说明

@@ -31,6 +31,9 @@ public class HoneyCamProperties {
     /** RTSP settings. */
     private Rtsp rtsp = new Rtsp();
 
+    /** ONVIF settings. */
+    private Onvif onvif = new Onvif();
+
     /** Log directory path. */
     private Log log = new Log();
 
@@ -131,6 +134,13 @@ public class HoneyCamProperties {
         public void setPort(int port) { this.port = port; }
     }
 
+    public static class Onvif {
+        private int port = 8000;
+
+        public int getPort() { return port; }
+        public void setPort(int port) { this.port = port; }
+    }
+
     public static class Log {
         private String dir = "logs";
 
@@ -157,6 +167,9 @@ public class HoneyCamProperties {
 
     public Rtsp getRtsp() { return rtsp; }
     public void setRtsp(Rtsp rtsp) { this.rtsp = rtsp; }
+
+    public Onvif getOnvif() { return onvif; }
+    public void setOnvif(Onvif onvif) { this.onvif = onvif; }
 
     public Log getLog() { return log; }
     public void setLog(Log log) { this.log = log; }

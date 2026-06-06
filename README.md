@@ -12,12 +12,12 @@
 | 登录日志 | ✅ 完成 | 记录 IP/UA/用户名/密码 → JSONL |
 | 交互日志 | ✅ 完成 | PAN/TILT/ZOOM/SESSION 事件 → JSONL |
 | Fake RTSP (554) | ✅ 完成 | OPTIONS/DESCRIBE/SETUP/PLAY/PAUSE/TEARDOWN |
+| Fake ONVIF (8000) | ✅ 完成 | Device/Media/PTZ 服务，SOAP XML 响应 |
 | 可配置欺骗策略 | ✅ 完成 | 概率性登录成功、白名单凭据、延迟预览 |
 | Group B/C 实验配置 | ✅ 完成 | 低交互自动巡航 / 高交互 PTZ |
 | 分析脚本 | ✅ 完成 | 转化率 + 停留时长 CDF |
 | 抓包脚本 | ✅ 完成 | Linux shell + Windows PowerShell |
-| ONVIF (8000) | ❌ 未实现 | |
-| RTMP (1935) | ❌ 未实现 | |
+| RTMP (1935) | ❌ 跳过 | 已过时，缺失不降低欺骗度 |
 | 云端部署实验 | ❌ 未开始 | |
 | 最终报告 | ❌ 未开始 | |
 
@@ -32,7 +32,8 @@
     ├── AuthController     ← 伪装登录（概率性放行 + 记录凭据）
     ├── PageController     ← 注入蜜罐配置到页面
     ├── InteractionController ← PTZ 交互记录 API
-    ├── RtspServer         ← 5554 端口 RTSP 握手仿真
+    ├── RtspServer         ← 554 端口 RTSP 握手仿真
+    ├── OnvifServer        ← 8000 端口 ONVIF SOAP 仿真
     └── LogService         ← JSONL 日志（按日切分）
     ↓
 [前端 (Thymeleaf + Three.js)]
@@ -44,7 +45,8 @@
 [日志系统]
     ├── login-attempts-YYYY-MM-DD.jsonl
     ├── interactions-YYYY-MM-DD.jsonl
-    └── rtsp-requests-YYYY-MM-DD.jsonl
+    ├── rtsp-requests-YYYY-MM-DD.jsonl
+    └── onvif-requests-YYYY-MM-DD.jsonl
 ```
 
 ## 快速启动
@@ -62,6 +64,7 @@
 默认端口：
 - HTTP: `8081`（环境变量 `HONEYCAM_HTTP_PORT` 覆盖）
 - RTSP: `554`（环境变量 `HONEYCAM_RTSP_PORT` 覆盖）
+- ONVIF: `8000`（环境变量 `HONEYCAM_ONVIF_PORT` 覆盖）
 
 访问：`http://localhost:8081/` → 自动跳转到 `/login`
 
@@ -109,6 +112,7 @@
 | `honeycam.interaction.ptz-enabled` | true | PTZ 是否启用 |
 | `honeycam.interaction.auto-patrol-enabled` | false | 自动巡航是否启用 |
 | `honeycam.rtsp.port` | 554 | RTSP 监听端口 |
+| `honeycam.onvif.port` | 8000 | ONVIF 监听端口 |
 
 ## 抓包
 
