@@ -1,6 +1,7 @@
 package com.example.honeycam.controller;
 
 import com.example.honeycam.config.HoneyCamProperties;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,7 +24,11 @@ public class PageController {
      * viewer can pick it up without additional AJAX requests.
      */
     @GetMapping("/camera")
-    public String cameraPage(Model model) {
+    public String cameraPage(Model model, HttpSession session) {
+        if (session.getAttribute("authenticated") == null) {
+            return "redirect:/login";
+        }
+
         HoneyCamProperties.Camera     cam    = props.getCamera();
         HoneyCamProperties.Panorama   pan    = props.getPanorama();
         HoneyCamProperties.Deception  dec    = props.getDeception();

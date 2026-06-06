@@ -24,8 +24,8 @@ public class SecurityConfig {
 
             // Allow all requests without authentication
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/login", "/camera", "/api/**", "/ws/**",
-                                 "/css/**", "/js/**", "/images/**", "/static/**",
+                .requestMatchers("/", "/login", "/camera", "/cgi-bin/**", "/ws/**",
+                                 "/css/**", "/js/**", "/images/**", "/media/**", "/static/**",
                                  "/error").permitAll()
                 .anyRequest().permitAll()
             )

@@ -76,6 +76,7 @@ public class AuthController {
         logService.logInteraction(attemptEvent);
 
         if (shouldAllowFakePass(username, password)) {
+            session.setAttribute("authenticated", true);
             redirectAttributes.addFlashAttribute("notice",
                     "Login accepted. Redirecting to live view...");
             return "redirect:/camera";
