@@ -25,10 +25,14 @@
     defaultFov: 75,
     minFov: 18,
     maxFov: 110,
-    tiltMin: -65,
-    tiltMax: 65,
-    tiltMinRad: -65 * Math.PI / 180,
-    tiltMaxRad: 65 * Math.PI / 180,
+    panMinDeg: -30,
+    panMaxDeg: 100,
+    get panMinRad() { return this.panMinDeg * Math.PI / 180; },
+    get panMaxRad() { return this.panMaxDeg * Math.PI / 180; },
+    tiltMinDeg: -35,
+    tiltMaxDeg: 55,
+    get tiltMinRad() { return this.tiltMinDeg * Math.PI / 180; },
+    get tiltMaxRad() { return this.tiltMaxDeg * Math.PI / 180; },
     inertiaDamping: 0.88,
     inertiaThreshold: 0.0003,
     logDebounceMs: 600,
@@ -98,10 +102,10 @@
   /* ── OSD pixel-canvas rendering ─────────────────── */
   // Renders text on low-res offscreen canvas, thresholds alpha to strip anti-aliasing,
   // then scales up 3× with nearest-neighbour for crisp dot-matrix look (no halo).
-  const OSD_FONT_SIZE = 18;
-  const OSD_CANVAS_W = 240;
-  const OSD_CANVAS_H = 22;
-  const OSD_SCALE = 3;
+  const OSD_FONT_SIZE = 28;
+  const OSD_CANVAS_W = 280;
+  const OSD_CANVAS_H = 28;
+  const OSD_SCALE = 2;
   let osdOffscreen = null;
   let osdOffCtx = null;
   let osdVisCtx = null;
@@ -285,6 +289,8 @@
       if (Math.abs(velocityX) > CONFIG.inertiaThreshold || Math.abs(velocityY) > CONFIG.inertiaThreshold) {
         panAngle += velocityX;
         tiltAngle += velocityY;
+        if (panAngle < CONFIG.panMinRad) { panAngle = CONFIG.panMinRad; velocityX = 0; }
+        if (panAngle > CONFIG.panMaxRad) { panAngle = CONFIG.panMaxRad; velocityX = 0; }
         if (tiltAngle < CONFIG.tiltMinRad) { tiltAngle = CONFIG.tiltMinRad; velocityY = 0; }
         if (tiltAngle > CONFIG.tiltMaxRad) { tiltAngle = CONFIG.tiltMaxRad; velocityY = 0; }
         velocityX *= CONFIG.inertiaDamping;
@@ -314,6 +320,7 @@
     if (d.tilt) { tiltAngle += d.tilt * rad; velocityY = d.tilt * rad * 0.5; }
     if (d.fov) { fov = clamp(fov + d.fov, CONFIG.minFov, CONFIG.maxFov); }
     tiltAngle = clamp(tiltAngle, CONFIG.tiltMinRad, CONFIG.tiltMaxRad);
+    panAngle = clamp(panAngle, CONFIG.panMinRad, CONFIG.panMaxRad);
     updateOsd();
   }
 
@@ -350,6 +357,7 @@
     }
     e.preventDefault();
     tiltAngle = clamp(tiltAngle, CONFIG.tiltMinRad, CONFIG.tiltMaxRad);
+    panAngle = clamp(panAngle, CONFIG.panMinRad, CONFIG.panMaxRad);
     updateOsd();
     debouncedLog('PAN');
   }
