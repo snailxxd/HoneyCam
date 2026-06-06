@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Attackers interacting with the 360° camera view trigger these endpoints.
  */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/cgi-bin")
 public class InteractionController {
 
     private final LogService logService;
@@ -37,7 +37,7 @@ public class InteractionController {
     /**
      * Record a PTZ interaction event from the attacker.
      */
-    @PostMapping("/interaction")
+    @PostMapping("/ptz.cgi")
     public ResponseEntity<Map<String, Object>> recordInteraction(
             @RequestBody InteractionEvent event,
             HttpServletRequest request,
@@ -132,11 +132,11 @@ public class InteractionController {
                 "codec", "H.264",
                 "framerate", 30,
                 "bitrate", "2048 kbps",
-                "streamUrl", "/api/stream/live"
+                "streamUrl", "/cgi-bin/stream/live"
         ));
     }
 
-    @PostMapping("/session/start")
+    @PostMapping("/connect")
     public ResponseEntity<Map<String, Object>> startSession(HttpServletRequest request, HttpSession session) {
         InteractionSession camSession = sessions.computeIfAbsent(session.getId(), k -> new InteractionSession());
         camSession.startedAt = Instant.now();
@@ -155,7 +155,7 @@ public class InteractionController {
         ));
     }
 
-    @PostMapping("/session/end")
+    @PostMapping("/disconnect")
     public ResponseEntity<Map<String, Object>> endSession(HttpServletRequest request, HttpSession session) {
         InteractionSession camSession = sessions.computeIfAbsent(session.getId(), k -> new InteractionSession());
         Instant endedAt = Instant.now();

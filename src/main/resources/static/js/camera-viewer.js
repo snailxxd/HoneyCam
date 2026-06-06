@@ -1,6 +1,6 @@
 /**
- * HoneyCam — Hikvision-style 360° Camera Viewer
- * PTZ via buttons + keyboard only (no drag-to-pan).
+ * Hikvision Web Components — Camera Viewer
+ * PTZ via buttons + keyboard only.
  */
 (function () {
   'use strict';
@@ -76,17 +76,17 @@
     if (previewOverlay) previewOverlay.classList.add('hidden');
   }
 
-  /* ── Interaction logging ──────────────────────── */
-  function logInteraction(actionType, extra) {
+  /* ── PTZ state sync ──────────────────────────── */
+  function syncPTZ(actionType, extra) {
     const body = Object.assign({ actionType, panAngle, tiltAngle, fov }, extra || {});
-    fetch('/api/interaction', {
+    fetch('/cgi-bin/ptz.cgi', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }).catch(() => {});
   }
 
-  function debouncedLog(actionType) {
+  function debouncedSync(actionType) {
     if (Math.abs(panAngle - loggedPan) < 0.008 &&
         Math.abs(tiltAngle - loggedTilt) < 0.008 &&
         Math.abs(fov - loggedFov) < 0.5) return;
@@ -95,7 +95,7 @@
       loggedPan = panAngle;
       loggedTilt = tiltAngle;
       loggedFov = fov;
-      logInteraction(actionType, { deltaX: 0, deltaY: 0, panAngle, tiltAngle, fov });
+      syncPTZ(actionType, { deltaX: 0, deltaY: 0, panAngle, tiltAngle, fov });
     }, CONFIG.logDebounceMs);
   }
 
@@ -336,7 +336,7 @@
     if (!buttonInterval) return;
     clearInterval(buttonInterval);
     buttonInterval = null;
-    if (buttonAction) logInteraction(buttonAction, { panAngle, tiltAngle, fov });
+    if (buttonAction) syncPTZ(buttonAction, { panAngle, tiltAngle, fov });
     buttonAction = null;
   }
 
@@ -359,7 +359,7 @@
     tiltAngle = clamp(tiltAngle, CONFIG.tiltMinRad, CONFIG.tiltMaxRad);
     panAngle = clamp(panAngle, CONFIG.panMinRad, CONFIG.panMaxRad);
     updateOsd();
-    debouncedLog('PAN');
+    debouncedSync('PAN');
   }
 
   function cycleSpeed() {
@@ -375,7 +375,7 @@
     camera.fov = fov;
     camera.updateProjectionMatrix();
     updateOsd();
-    debouncedLog('ZOOM');
+    debouncedSync('ZOOM');
   }
 
   /* ── Resize ───────────────────────────────────── */
@@ -441,7 +441,7 @@
     bindEvents();
     updateOsd();
     updateSpeedDots();
-    fetch('/api/session/start', { method: 'POST' }).catch(() => {});
+    fetch('/cgi-bin/connect', { method: 'POST' }).catch(() => {});
 
     if (!ptzEnabled) {
       const panel = document.getElementById('ptzPanel');
@@ -453,8 +453,8 @@
   window.addEventListener('beforeunload', () => {
     if (liveVideoEl) { liveVideoEl.pause(); liveVideoEl.src = ''; liveVideoEl.load(); liveVideoEl = null; }
     if (osdTimer) clearInterval(osdTimer);
-    if (navigator.sendBeacon) { navigator.sendBeacon('/api/session/end'); }
-    else { fetch('/api/session/end', { method: 'POST', keepalive: true }).catch(() => {}); }
+    if (navigator.sendBeacon) { navigator.sendBeacon('/cgi-bin/disconnect'); }
+    else { fetch('/cgi-bin/disconnect', { method: 'POST', keepalive: true }).catch(() => {}); }
   });
 
   /* ── Wait for Three.js ────────────────────────── */
