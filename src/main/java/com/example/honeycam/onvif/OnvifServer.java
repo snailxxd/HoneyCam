@@ -58,7 +58,12 @@ public class OnvifServer {
         } catch (IOException e) {
             logger.warn("Invalid ONVIF bind address '{}', falling back to 0.0.0.0: {}",
                     props.getOnvif().getAddress(), e.getMessage());
-            addr = InetAddress.getByName("0.0.0.0");
+            try {
+                addr = InetAddress.getByName("0.0.0.0");
+            } catch (IOException impossible) {
+                // 0.0.0.0 is always valid; this branch never runs
+                throw new RuntimeException("Cannot resolve fallback address", impossible);
+            }
         }
         this.bindAddress = addr;
     }
