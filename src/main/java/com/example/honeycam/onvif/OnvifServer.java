@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import jakarta.annotation.PreDestroy;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
@@ -42,6 +43,7 @@ public class OnvifServer {
     private static final Logger logger = LoggerFactory.getLogger(OnvifServer.class);
 
     private final LogService logService;
+    private final InetAddress bindAddress;
     private final int port;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private ServerSocket serverSocket;
@@ -50,6 +52,15 @@ public class OnvifServer {
     public OnvifServer(LogService logService, HoneyCamProperties props) {
         this.logService = logService;
         this.port = props.getOnvif().getPort();
+        InetAddress addr;
+        try {
+            addr = InetAddress.getByName(props.getOnvif().getAddress());
+        } catch (IOException e) {
+            logger.warn("Invalid ONVIF bind address '{}', falling back to 0.0.0.0: {}",
+                    props.getOnvif().getAddress(), e.getMessage());
+            addr = InetAddress.getByName("0.0.0.0");
+        }
+        this.bindAddress = addr;
     }
 
     /**
@@ -69,8 +80,8 @@ public class OnvifServer {
 
     private void acceptLoop() {
         try {
-            serverSocket = new ServerSocket(port);
-            logger.info("ONVIF server listening on 0.0.0.0:{}", port);
+            serverSocket = new ServerSocket(port, 50, bindAddress);
+            logger.info("ONVIF server listening on {}:{}", bindAddress.getHostAddress(), port);
 
             while (running.get() && !serverSocket.isClosed()) {
                 try {

@@ -112,15 +112,21 @@ public class HoneyCamProperties {
     }
 
     public static class Rtsp {
+        private String address = "0.0.0.0";
         private int port = 554;
 
+        public String getAddress() { return address; }
+        public void setAddress(String address) { this.address = address; }
         public int getPort() { return port; }
         public void setPort(int port) { this.port = port; }
     }
 
     public static class Onvif {
+        private String address = "0.0.0.0";
         private int port = 8000;
 
+        public String getAddress() { return address; }
+        public void setAddress(String address) { this.address = address; }
         public int getPort() { return port; }
         public void setPort(int port) { this.port = port; }
     }

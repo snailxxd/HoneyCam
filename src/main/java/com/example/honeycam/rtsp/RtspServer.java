@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import jakarta.annotation.PreDestroy;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
@@ -34,6 +35,7 @@ public class RtspServer {
     private static final Logger logger = LoggerFactory.getLogger(RtspServer.class);
 
     private final LogService logService;
+    private final InetAddress bindAddress;
     private final int port;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private ServerSocket serverSocket;
@@ -42,6 +44,15 @@ public class RtspServer {
     public RtspServer(LogService logService, HoneyCamProperties props) {
         this.logService = logService;
         this.port = props.getRtsp().getPort();
+        InetAddress addr;
+        try {
+            addr = InetAddress.getByName(props.getRtsp().getAddress());
+        } catch (IOException e) {
+            logger.warn("Invalid RTSP bind address '{}', falling back to 0.0.0.0: {}",
+                    props.getRtsp().getAddress(), e.getMessage());
+            addr = InetAddress.getByName("0.0.0.0");
+        }
+        this.bindAddress = addr;
     }
 
     /**
@@ -61,8 +72,8 @@ public class RtspServer {
 
     private void acceptLoop() {
         try {
-            serverSocket = new ServerSocket(port);
-            logger.info("RTSP server listening on 0.0.0.0:{}", port);
+            serverSocket = new ServerSocket(port, 50, bindAddress);
+            logger.info("RTSP server listening on {}:{}", bindAddress.getHostAddress(), port);
 
             while (running.get() && !serverSocket.isClosed()) {
                 try {
